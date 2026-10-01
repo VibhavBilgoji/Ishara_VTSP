@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import { PictogramGrid } from '@/components/pictogram-grid'
@@ -11,8 +11,8 @@ import { useSessionRealtime } from '@/hooks/use-session-realtime'
 import { getClipUrl } from '@/lib/isl-clips'
 import type { DetailedPictogram } from '@/lib/pictograms'
 import type { RequestStatusPayload } from '@/lib/types'
+import { KioskAckBanner, type KioskAlertStage } from '@/components/kiosk-ack-banner'
 import {
-  CheckCircle2,
   Video,
   Shield,
   X,
@@ -20,7 +20,11 @@ import {
   PhoneOff,
   Hand,
   HeartHandshake,
-  Footprints,
+  CheckCircle2,
+  Maximize,
+  Minimize,
+  Type,
+  Lock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -33,17 +37,77 @@ export default function PatientPage() {
 
   const [lastAlertText, setLastAlertText] = useState<string | null>(null)
   const [lastAlertHindi, setLastAlertHindi] = useState<string | null>(null)
-  const [showingConfirmation, setShowingConfirmation] = useState(false)
-  const [lastAlertUrgent, setLastAlertUrgent] = useState(false)
+  const [alertStage, setAlertStage] = useState<KioskAlertStage | null>(null)
+  const [acknowledgedBy, setAcknowledgedBy] = useState<string | null>(null)
+  const [acknowledgedAt, setAcknowledgedAt] = useState<string | null>(null)
+  const ackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [nurseUpdate, setNurseUpdate] = useState<RequestStatusPayload | null>(null)
-  // Stable so the realtime subscription is not rebuilt on every render
+  // Nurse-station responses to routine requests. Stable so the realtime
+  // subscription is not rebuilt on every render.
   const handleRequestStatus = useCallback((update: RequestStatusPayload) => {
-    setNurseUpdate(update)
-    setShowingConfirmation(false)
+    if (ackTimeoutRef.current) clearTimeout(ackTimeoutRef.current)
+    if (update.status === 'acknowledged') {
+      setAlertStage('seen')
+      setAcknowledgedBy('A nurse, on the way / नर्स आ रही हैं')
+      setAcknowledgedAt(new Date(update.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+      setNurseUpdate(null)
+    } else {
+      setAlertStage(null)
+      setNurseUpdate(update)
+    }
   }, [])
   const [bedName, setBedName] = useState('Bedside Kiosk (ISL)')
   const [hospitalName, setHospitalName] = useState('Hospital')
   const [fallbackCountdown, setFallbackCountdown] = useState<number>(30)
+  const [largeText, setLargeText] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [wakeLockActive, setWakeLockActive] = useState(false)
+
+  // Screen Wake Lock API to prevent bedside tablet from dimming/sleeping
+  useEffect(() => {
+    let wakeLock: any = null
+
+    const requestWakeLock = async () => {
+      if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+        try {
+          wakeLock = await (navigator as any).wakeLock.request('screen')
+          setWakeLockActive(true)
+          wakeLock.addEventListener('release', () => setWakeLockActive(false))
+        } catch {
+          // Wake lock rejected or battery saver active
+        }
+      }
+    }
+
+    requestWakeLock()
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      if (wakeLock) {
+        try { wakeLock.release() } catch {}
+      }
+      document.removeEventListener('visibilitychange', handleVisibility)
+      if (ackTimeoutRef.current) clearTimeout(ackTimeoutRef.current)
+    }
+  }, [])
+
+  const toggleFullscreen = () => {
+    if (typeof document === 'undefined') return
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {})
+      setIsFullscreen(true)
+    } else {
+      document.exitFullscreen().catch(() => {})
+      setIsFullscreen(false)
+    }
+  }
 
   useEffect(() => {
     fetch(`/api/session?id=${encodeURIComponent(sessionId)}`)
@@ -57,6 +121,16 @@ export default function PatientPage() {
       .catch(() => {})
   }, [sessionId])
 
+  const handleAlertAckReceived = useCallback((ack: any) => {
+    if (ackTimeoutRef.current) clearTimeout(ackTimeoutRef.current)
+    setAlertStage('seen')
+    setAcknowledgedBy(ack.acknowledgedBy || 'Doctor / Staff')
+    setAcknowledgedAt(
+      new Date(ack.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    )
+    toast.success(`Seen by ${ack.acknowledgedBy || 'staff'} • डॉक्टर द्वारा देखा गया`)
+  }, [])
+
   const {
     activeClip,
     sessionStatus,
@@ -69,6 +143,7 @@ export default function PatientPage() {
   } = useSessionRealtime({
     sessionId,
     onRequestStatus: handleRequestStatus,
+    onAlertAck: handleAlertAckReceived,
   })
 
   // Auto-fallback countdown when live interpreter is paged (falls back to P3 AI Sign Interpreter if unreached)
@@ -102,7 +177,16 @@ export default function PatientPage() {
     const isUrgent = pictogram.priority === 'P0'
     const fullNote = extraNote ? `${pictogram.label} (${extraNote})` : pictogram.label
 
-    // 1. Send alert via Realtime broadcast (only P0 urgent informs doctor via emergency banner)
+    // Set initial Sending state
+    setLastAlertText(fullNote)
+    setLastAlertHindi(
+      pictogram.hindiText || (isUrgent ? 'डॉक्टर को तुरंत सूचित किया गया' : 'नर्सिंग स्टेशन को सूचित किया गया')
+    )
+    setAlertStage('sending')
+    setAcknowledgedBy(null)
+    setAcknowledgedAt(null)
+
+    // 1. Send alert via Realtime broadcast
     sendPictogramAlert(
       pictogram.key,
       pictogram.label,
@@ -113,14 +197,17 @@ export default function PatientPage() {
       extraNote
     )
 
-    // 2. Show clear confirmation banner for Deaf patient
-    setLastAlertText(fullNote)
-    setLastAlertUrgent(isUrgent)
     setNurseUpdate(null)
-    setLastAlertHindi(
-      pictogram.hindiText || (isUrgent ? 'डॉक्टर को तुरंत सूचित कर दिया गया है' : 'नर्सिंग स्टेशन को सूचित किया गया')
-    )
-    setShowingConfirmation(true)
+    // Transition to Delivered
+    setTimeout(() => {
+      setAlertStage((prev) => (prev === 'sending' ? 'delivered' : prev))
+    }, 300)
+
+    // If unacknowledged after 8 seconds, transition to unacknowledged warning
+    if (ackTimeoutRef.current) clearTimeout(ackTimeoutRef.current)
+    ackTimeoutRef.current = setTimeout(() => {
+      setAlertStage((curr) => (curr === 'delivered' ? 'unacknowledged' : curr))
+    }, 8000)
 
     if (isUrgent) {
       toast.error(`Urgent Alert Sent: ${fullNote} • डॉक्टर को तुरंत सूचित किया गया`)
@@ -240,24 +327,58 @@ export default function PatientPage() {
     <main className="patient-view min-h-screen bg-background text-foreground flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-card border-b border-border">
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-7 min-h-[76px] py-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-7 min-h-[76px] py-3 flex flex-wrap items-center justify-between gap-x-5 gap-y-2">
           <div className="flex items-center gap-3">
             <span className="relative w-10 h-10 rounded-xl border border-border bg-white overflow-hidden shrink-0">
               <Image src="/logo-mark.png" alt="" fill sizes="40px" className="object-contain p-1" priority />
             </span>
             <span className="font-heading font-bold text-2xl sm:text-[28px] tracking-tight">{bedName}</span>
           </div>
-          <span role="status" className="flex items-center gap-2.5 text-base sm:text-[17px] font-semibold text-success-ink">
-            <span className="w-3 h-3 rounded-full bg-success shrink-0" />
-            <span className="flex flex-col leading-tight">
-              <span>Your care team can see your messages</span>
-              <span lang="hi" className="text-sm font-medium opacity-85">आपकी टीम आपके संदेश देख रही है</span>
+
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <span role="status" className="flex items-center gap-2 text-sm sm:text-base font-semibold text-success-ink mr-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-success shrink-0 animate-pulse" />
+              <span>Care Team Connected</span>
             </span>
-          </span>
+
+            {wakeLockActive && (
+              <span
+                className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-500/10 text-teal-800 dark:text-teal-300 border border-teal-500/20"
+                title="Screen wake lock is active — tablet will not dim or sleep"
+              >
+                <Lock className="w-3 h-3" />
+                <span>Screen Locked On</span>
+              </span>
+            )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLargeText(!largeText)}
+              className={`h-9 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${
+                largeText ? 'bg-primary text-primary-foreground border-primary' : 'border-border'
+              }`}
+              title={largeText ? 'Switch to normal text size' : 'Switch to large text mode for accessibility'}
+            >
+              <Type className="w-3.5 h-3.5" />
+              <span>{largeText ? 'Text: Large' : 'Large Text'}</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleFullscreen}
+              className="h-9 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-border"
+              title={isFullscreen ? 'Exit fullscreen' : 'Enter immersive kiosk fullscreen'}
+            >
+              {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+            </Button>
+          </div>
         </div>
       </header>
 
-      <div className="flex-1 max-w-[1280px] w-full mx-auto p-4 sm:px-7 sm:py-5 grid lg:grid-cols-[420px_minmax(0,1fr)] gap-6 items-start">
+      <div className={`flex-1 max-w-[1280px] w-full mx-auto p-4 sm:px-7 sm:py-5 grid lg:grid-cols-[420px_minmax(0,1fr)] gap-6 items-start ${largeText ? 'text-lg' : ''}`}>
         {/* ───── Left: interpreter + sign camera ───── */}
         <div className="flex flex-col gap-3.5 lg:sticky lg:top-[96px]">
           {sessionStatus === 'interpreter_requested' ? (
@@ -356,29 +477,15 @@ export default function PatientPage() {
 
         {/* ───── Right: confirmations + pictograms ───── */}
         <div className="flex flex-col gap-4 min-w-0">
-          {nurseUpdate && (
+          {nurseUpdate && nurseUpdate.status === 'done' && (
             <div
               role="status"
-              className={`rounded-2xl border-2 px-4 py-3.5 flex items-center gap-3 animate-in slide-in-from-top-2 duration-200 ${
-                nurseUpdate.status === 'acknowledged'
-                  ? 'bg-indigo-surface border-indigo text-indigo-ink'
-                  : 'bg-success-surface border-success/50 text-success-ink'
-              }`}
+              className="rounded-2xl border-2 bg-success-surface border-success/50 text-success-ink px-4 py-3.5 flex items-center gap-3 animate-in slide-in-from-top-2 duration-200"
             >
-              {nurseUpdate.status === 'acknowledged' ? (
-                <Footprints className="w-7 h-7 shrink-0" />
-              ) : (
-                <CheckCircle2 className="w-7 h-7 shrink-0" />
-              )}
+              <CheckCircle2 className="w-7 h-7 shrink-0" />
               <span className="flex-1 flex flex-col">
-                <span className="text-lg font-bold">
-                  {nurseUpdate.status === 'acknowledged'
-                    ? `A nurse is on the way: ${nurseUpdate.label}`
-                    : `Done: ${nurseUpdate.label}`}
-                </span>
-                <span lang="hi" className="text-[15px] font-medium opacity-90">
-                  {nurseUpdate.status === 'acknowledged' ? 'नर्स आपके पास आ रही हैं' : 'आपका अनुरोध पूरा हुआ'}
-                </span>
+                <span className="text-lg font-bold">Done: {nurseUpdate.label}</span>
+                <span lang="hi" className="text-[15px] font-medium opacity-90">आपका अनुरोध पूरा हुआ</span>
               </span>
               <Button
                 variant="ghost"
@@ -389,24 +496,16 @@ export default function PatientPage() {
               </Button>
             </div>
           )}
-          {showingConfirmation && lastAlertText && (
-            <div
-              role="status"
-              className="rounded-2xl bg-success-surface border-[1.5px] border-success/50 text-success-ink px-4 py-3.5 flex items-center gap-3 animate-in slide-in-from-top-2 duration-200"
-            >
-              <CheckCircle2 className="w-6 h-6 shrink-0" />
-              <span className="flex-1 text-[17px] font-semibold">
-                {lastAlertUrgent ? 'Doctor has been told' : 'Nurse station has been told'}: {lastAlertText}
-                {lastAlertHindi && <span lang="hi" className="font-medium"> • {lastAlertHindi}</span>}
-              </span>
-              <Button
-                variant="ghost"
-                onClick={() => setShowingConfirmation(false)}
-                className="h-12 px-4 rounded-xl font-semibold text-success-ink hover:bg-success/10"
-              >
-                OK
-              </Button>
-            </div>
+          {alertStage && lastAlertText && (
+            <KioskAckBanner
+              stage={alertStage}
+              alertText={lastAlertText}
+              alertHindi={lastAlertHindi}
+              acknowledgedBy={acknowledgedBy}
+              acknowledgedAt={acknowledgedAt}
+              onDismiss={() => setAlertStage(null)}
+              onCallInterpreter={handleRequestInterpreter}
+            />
           )}
 
           <div className="flex flex-col gap-2">

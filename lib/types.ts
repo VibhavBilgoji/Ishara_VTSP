@@ -142,6 +142,14 @@ export interface GestureTextPayload {
   timestamp: string
 }
 
+export interface AlertAckPayload {
+  type: 'alert_ack'
+  sessionId: string
+  alertId?: string
+  acknowledgedBy: string
+  timestamp: string
+}
+
 // ===== Pictogram grid items =====
 
 export interface PictogramItem {

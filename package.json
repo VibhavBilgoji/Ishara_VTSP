@@ -10,6 +10,7 @@
     "check:security": "node scripts/check-security.mjs",
     "test:isl": "bun scripts/test-gemini-isl.ts",
     "check:isl-clips": "bun scripts/check-isl-clips.ts",
+    "test:e2e": "playwright test",
     "seed:prod": "bun scripts/seed-production-simulation.ts"
   },
   "dependencies": {
@@ -36,6 +37,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",

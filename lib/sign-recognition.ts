@@ -14,7 +14,6 @@ import {
   FaceLandmarker,
   FilesetResolver,
   type HandLandmarkerResult,
-  type FaceLandmarkerResult,
   type NormalizedLandmark,
 } from '@mediapipe/tasks-vision'
 
@@ -186,7 +185,7 @@ export async function initRecognizers(): Promise<void> {
         outputFaceBlendshapes: true,
       })
       console.log('[ISL] FaceLandmarker loaded for multimodal facial blendshapes')
-    } catch (gpuErr) {
+    } catch {
       try {
         _faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
           baseOptions: {

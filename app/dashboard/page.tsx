@@ -24,6 +24,7 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { KioskPairing } from '@/components/kiosk-pairing'
 import { EmergencyAlertBanner } from '@/components/emergency-alert-banner'
+import { AudioAlarmBanner } from '@/components/audio-alarm-banner'
 import {
   HOSPITAL_ALERTS_CHANNEL,
   GLOBAL_HOSPITAL_ALERTS_BC,
@@ -292,6 +293,8 @@ export default function HospitalRosterPage() {
 
       {/* Main Content Area */}
       <div className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
+        <AudioAlarmBanner />
+
         {/* Urgent Emergency Alert Banner for Doctor (Hospital-wide) */}
         {activeEmergencyAlert && (
           <EmergencyAlertBanner

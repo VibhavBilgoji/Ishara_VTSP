@@ -33,6 +33,7 @@ export const INTERPRETER_PRESENCE_CHANNEL = 'interpreter-presence'
 export const REALTIME_EVENTS = {
   PICTOGRAM_ALERT: 'pictogram_alert',
   EMERGENCY_ALERT: 'emergency_alert',
+  ALERT_ACK: 'alert_ack',
   PLAY_CLIP: 'play_clip',
   STATUS_CHANGE: 'status_change',
   GESTURE_TEXT: 'gesture_text',
