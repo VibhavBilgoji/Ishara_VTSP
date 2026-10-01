@@ -126,9 +126,9 @@ const DISPLAY_NAMES: Record<string, string> = {
   dizzy:          'Feeling dizzy',
   bleeding:       'Bleeding',
   swelling:       'Swelling',
-  nausea:         'Nausea / Vomiting',
+  nausea:         'Nausea',
   cough:          'Coughing',
-  weakness:       'Weakness',
+  weakness:       'Feeling weak / tired',
   diabetes:       'Diabetes',
   blood_pressure: 'Blood pressure issue',
   water:          'Need water',
@@ -140,6 +140,7 @@ const DISPLAY_NAMES: Record<string, string> = {
   injury:         'Injury',
   anxiety:        'Anxiety',
   im_ok:          'I\'m okay',
+  need_help:      'Need help',
 }
 
 // ─── Initialisation ───────────────────────────────────────────────────────────

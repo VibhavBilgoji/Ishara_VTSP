@@ -71,16 +71,31 @@ function GestureBanner({
     latestGesture.text.toLowerCase().includes('yes') ||
     latestGesture.text.toLowerCase().includes('fine')
 
+  // MEDIUM severity labels — matched on display text (payload only carries text, not raw label)
+  const MEDIUM_SEVERITY_DISPLAY = new Set([
+    'Coughing',
+    'Nausea',
+    'Feeling weak / tired',
+  ])
+  const isAmber =
+    !isPainOrEmergency &&
+    !isPositive &&
+    MEDIUM_SEVERITY_DISPLAY.has(latestGesture.text)
+
   const borderColor = isPainOrEmergency
     ? 'border-red-500 bg-red-500/5'
     : isPositive
     ? 'border-green-500 bg-green-500/5'
+    : isAmber
+    ? 'border-amber-500 bg-amber-500/5'
     : 'border-blue-500 bg-blue-500/5'
 
   const labelColor = isPainOrEmergency
     ? 'text-red-400'
     : isPositive
     ? 'text-green-400'
+    : isAmber
+    ? 'text-amber-400'
     : 'text-blue-400'
 
   const timeAgo = (() => {
@@ -214,6 +229,16 @@ export default function DashboardPage() {
   const [gestureHistory,  setGestureHistory]  = useState<GestureTextPayload[]>([])
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
+  // Clearer spoken phrases keyed by display text (payload.text is the display text, not the raw label)
+  const SPEECH_TEXT: Record<string, string> = {
+    'Need help':             'Patient needs help',
+    "Can't sleep":           'Patient cannot sleep or needs rest',
+    'Feeling weak / tired':  'Patient is feeling weak or tired',
+    'Coughing':              'Patient is coughing',
+    'Nausea':                'Patient feels nauseous',
+    'Itching':               'Patient has itching or skin irritation',
+  }
+
   const handleGestureReceived = useCallback((payload: GestureTextPayload) => {
     setLatestGesture(payload)
     setGestureHistory(prev => [payload, ...prev].slice(0, 20))
@@ -226,7 +251,8 @@ export default function DashboardPage() {
     // Text-to-speech so the clinician hears the sign name
     if (autoSpeak && typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel()
-      const utt = new SpeechSynthesisUtterance(payload.text)
+      const spokenText = SPEECH_TEXT[payload.text] ?? payload.text
+      const utt = new SpeechSynthesisUtterance(spokenText)
       utt.rate  = 0.95
       utt.pitch = 1
       window.speechSynthesis.speak(utt)
