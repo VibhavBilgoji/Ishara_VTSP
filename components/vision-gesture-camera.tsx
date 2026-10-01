@@ -15,6 +15,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { Maximize2, Minimize2 } from 'lucide-react'
 import {
   initRecognizers,
   destroyRecognizers,
@@ -56,6 +57,7 @@ export function VisionGestureCamera({
   onCameraStateChange,
   className = '',
 }: VisionGestureCameraProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef<number>(0)
@@ -71,6 +73,10 @@ export function VisionGestureCamera({
   const [wordBuffer, setWordBuffer] = useState<string[]>([])
   const [flashLabel, setFlashLabel] = useState('')
   const [initError, setInitError] = useState('')
+  const [isNativeFullscreen, setIsNativeFullscreen] = useState(false)
+  // CSS overlay fallback for browsers without element fullscreen (e.g. iPhone Safari)
+  const [isOverlayFullscreen, setIsOverlayFullscreen] = useState(false)
+  const isFullscreen = isNativeFullscreen || isOverlayFullscreen
 
   // ─── Skeleton drawing ───────────────────────────────────────────────────────
 
@@ -227,6 +233,65 @@ export function VisionGestureCamera({
     else startCamera()
   }, [cameraOn, startCamera, stopCamera])
 
+  // ─── Full screen ────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    const onChange = () => {
+      const native = document.fullscreenElement === containerRef.current
+      setIsNativeFullscreen(native)
+      if (native) setIsOverlayFullscreen(false)
+    }
+    document.addEventListener('fullscreenchange', onChange)
+    document.addEventListener('webkitfullscreenchange', onChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange)
+      document.removeEventListener('webkitfullscreenchange', onChange)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isOverlayFullscreen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOverlayFullscreen(false)
+    }
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [isOverlayFullscreen])
+
+  const toggleFullscreen = useCallback(async () => {
+    const el = containerRef.current as (HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> | void }) | null
+    if (!el) return
+
+    if (document.fullscreenElement) {
+      await document.exitFullscreen().catch(() => {})
+      return
+    }
+    if (isOverlayFullscreen) {
+      setIsOverlayFullscreen(false)
+      return
+    }
+
+    const request = el.requestFullscreen?.bind(el) ?? el.webkitRequestFullscreen?.bind(el)
+    if (request) {
+      try {
+        // Some embedded webviews leave the request pending forever, so give up after a moment
+        const outcome = await Promise.race([
+          Promise.resolve(request()).then(() => 'entered' as const),
+          new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 1000)),
+        ])
+        if (outcome === 'entered' || document.fullscreenElement === el) return
+      } catch {
+        // fall through to the overlay
+      }
+    }
+    setIsOverlayFullscreen(true)
+  }, [isOverlayFullscreen])
+
   // ─── Init model on mount ────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -252,7 +317,19 @@ export function VisionGestureCamera({
   return (
     <div className={`flex flex-col gap-2.5 ${className}`}>
       {/* YouTube-style Subscreen Container */}
-      <div className="relative rounded-2xl overflow-hidden border-2 border-teal-500/40 bg-slate-950 shadow-2xl transition-all duration-300 w-full aspect-video sm:aspect-[16/9] max-h-[380px]">
+      <div
+        ref={containerRef}
+        role={isOverlayFullscreen ? 'dialog' : undefined}
+        aria-modal={isOverlayFullscreen || undefined}
+        aria-label={isFullscreen ? 'Sign camera, full screen' : undefined}
+        className={`overflow-hidden bg-slate-950 ${
+          isOverlayFullscreen
+            ? 'fixed inset-0 z-[100] w-screen h-[100dvh]'
+            : isNativeFullscreen
+            ? 'relative w-screen h-screen'
+            : 'relative rounded-2xl border-2 border-teal-500/40 w-full aspect-video max-h-[380px]'
+        }`}
+      >
         {/* Top Header Overlay Bar */}
         <div className="absolute top-0 left-0 right-0 z-20 px-3 py-2 bg-gradient-to-b from-black/90 via-black/50 to-transparent flex items-center justify-between text-white text-xs">
           <div className="flex items-center gap-2">
@@ -260,9 +337,9 @@ export function VisionGestureCamera({
               className={`w-2.5 h-2.5 rounded-full ${cameraOn ? 'bg-emerald-400 animate-ping' : 'bg-rose-500'
                 }`}
             />
-            <span className="font-extrabold text-[12px] tracking-wide text-white flex items-center gap-1.5">
+            <span className="font-extrabold text-[12px] tracking-wide text-white flex items-center gap-1.5 whitespace-nowrap">
               <span>Vision Sign AI Live</span>
-              <span className="text-[10px] uppercase px-1.5 py-0.2 font-mono bg-teal-900/60 border border-teal-500/40 text-teal-300 rounded">
+              <span className={`${isFullscreen ? '' : 'hidden xl:inline'} text-[10px] uppercase px-1.5 py-0.5 font-mono bg-teal-900/60 border border-teal-500/40 text-teal-300 rounded`}>
                 24 ISL Signs
               </span>
             </span>
@@ -274,6 +351,26 @@ export function VisionGestureCamera({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Full screen toggle */}
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? 'Exit full screen' : 'Full screen'}
+              aria-label={isFullscreen ? 'Exit full screen' : 'Show camera full screen'}
+              aria-pressed={isFullscreen}
+              className={`rounded-lg bg-black/60 hover:bg-black/80 border border-white/20 text-white flex items-center justify-center gap-1.5 transition-colors ${
+                isFullscreen ? 'h-12 px-4' : 'h-10 w-10'
+              }`}
+            >
+              {isFullscreen ? (
+                <>
+                  <Minimize2 className="w-5 h-5" />
+                  <span className="text-sm font-semibold">Exit full screen</span>
+                </>
+              ) : (
+                <Maximize2 className="w-4 h-4" />
+              )}
+            </button>
             {/* Eye privacy toggle button */}
             <button
               type="button"
@@ -281,7 +378,7 @@ export function VisionGestureCamera({
               disabled={!modelReady && !cameraOn}
               title={cameraOn ? 'Turn Off Camera Shutter' : 'Turn On Sign Camera'}
               aria-label={cameraOn ? 'Turn Off Camera' : 'Turn On Camera'}
-              className="h-8 px-2.5 rounded-lg bg-black/60 hover:bg-black/80 border border-white/20 text-white flex items-center gap-1.5 transition-all disabled:opacity-50"
+              className={`${isFullscreen ? 'h-12 px-4' : 'h-10 px-3'} rounded-lg bg-black/60 hover:bg-black/80 border border-white/20 text-white flex items-center gap-1.5 transition-colors disabled:opacity-50`}
             >
               {cameraOn ? (
                 <>
@@ -289,14 +386,14 @@ export function VisionGestureCamera({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
-                  <span className="text-[11px] font-bold">Camera On</span>
+                  <span className="text-[11px] font-bold whitespace-nowrap">Camera On</span>
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
                   </svg>
-                  <span className="text-[11px] font-bold">Camera Off</span>
+                  <span className="text-[11px] font-bold whitespace-nowrap">Camera Off</span>
                 </>
               )}
             </button>
@@ -321,8 +418,8 @@ export function VisionGestureCamera({
 
         {/* Privacy Shutter: Dark frame when camera is OFF */}
         {!cameraOn && (
-          <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-4 text-center space-y-3 z-10">
-            <div className="p-3.5 rounded-full bg-slate-900 border-2 border-slate-800 text-slate-400 shadow-inner">
+          <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center px-4 pt-12 pb-3 text-center space-y-3 z-10">
+            <div className={`${isFullscreen ? '' : 'hidden'} p-3.5 rounded-full bg-slate-900 border-2 border-slate-800 text-slate-400 shadow-inner`}>
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.89L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
               </svg>
@@ -382,7 +479,7 @@ export function VisionGestureCamera({
                   <span className="text-[9px] uppercase font-bold text-teal-300 block leading-tight tracking-wider">
                     Sign Detected
                   </span>
-                  <span className="text-xs font-bold text-white">{lastGesture.displayText}</span>
+                  <span className={`font-bold text-white ${isFullscreen ? 'text-2xl' : 'text-xs'}`}>{lastGesture.displayText}</span>
                 </div>
               </div>
             ) : (
@@ -421,7 +518,7 @@ export function VisionGestureCamera({
         {/* Flash banner when gesture is confirmed */}
         {flashLabel && (
           <div className="absolute bottom-4 left-3 right-3 flex justify-center pointer-events-none z-20 animate-in slide-in-from-bottom-2">
-            <div className="bg-emerald-600/95 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xl flex items-center gap-2 border border-emerald-300/40">
+            <div className={`bg-emerald-600/95 text-white font-bold rounded-xl shadow-xl flex items-center gap-2 border border-emerald-300/40 ${isFullscreen ? 'text-xl px-6 py-3' : 'text-xs px-4 py-2'}`}>
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
