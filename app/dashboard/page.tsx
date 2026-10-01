@@ -15,6 +15,7 @@ import {
   Clock,
   Bed,
   X,
+  Tablet,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -413,7 +414,7 @@ export default function HospitalRosterPage() {
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
                         <div className="flex items-center gap-1.5 text-slate-500">
                           <Clock className="w-3.5 h-3.5" />
                           <span>
@@ -431,7 +432,7 @@ export default function HospitalRosterPage() {
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Button
                             variant="outline"
                             size="sm"
@@ -443,6 +444,17 @@ export default function HospitalRosterPage() {
                           >
                             <QrCode className="w-3.5 h-3.5 text-teal-700" />
                             Pair Tablet
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(`/patient/${sess.id}`, '_blank')}
+                            className="h-8 px-2.5 text-xs font-bold border-slate-300 dark:border-slate-700 hover:border-teal-500 hover:text-teal-700 dark:hover:text-teal-300 flex items-center gap-1 transition-colors"
+                            title={`Open Patient Bedside Tablet for ${sess.patient_display_name} in new tab`}
+                          >
+                            <Tablet className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                            <span>Open Patient Tablet</span>
                           </Button>
 
                           <Button
