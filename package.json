@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "check:security": "node scripts/check-security.mjs",
+    "test:isl": "bun scripts/test-gemini-isl.ts",
+    "check:isl-clips": "bun scripts/check-isl-clips.ts",
     "seed:prod": "bun scripts/seed-production-simulation.ts"
   },
   "dependencies": {

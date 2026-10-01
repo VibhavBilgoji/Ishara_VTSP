@@ -1,5 +1,5 @@
 import { SEED_ISL_CLIPS } from './seed-clips'
-import { getClipByKey, getClipUrl, resolveStorageFilename } from './isl-clips'
+import { getClipByKey, getClipUrl, hasNegationOrContradiction, resolveStorageFilename } from './isl-clips'
 import type { ISLClipMatch } from './types'
 
 // Compact catalog summary specifically formatted for LLM semantic categorization
@@ -27,7 +27,7 @@ export async function matchClipWithGemini(query: string): Promise<ISLClipMatch |
   }
 
   const cleanQuery = (query || '').trim()
-  if (!cleanQuery) {
+  if (!cleanQuery || hasNegationOrContradiction(cleanQuery)) {
     return null
   }
 

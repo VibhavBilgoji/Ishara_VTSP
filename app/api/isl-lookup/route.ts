@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { searchClips, getClipByKey, getClipUrl, resolveStorageFilename } from '@/lib/isl-clips'
+import { searchClips, getClipByKey, getClipUrl, hasNegationOrContradiction, resolveStorageFilename } from '@/lib/isl-clips'
 import { matchClipWithGemini } from '@/lib/gemini-isl'
 import { createClient } from '@/lib/supabase/server'
 import { apiError, requireStaff, requireSameOrigin } from '@/lib/auth'
@@ -26,6 +26,11 @@ export async function POST(request: Request) {
     const body = await request.json()
     const query = typeof body.query === 'string' ? body.query.trim() : ''
     const key = body.key
+
+    if (query && hasNegationOrContradiction(query)) {
+      return NextResponse.json({ match: null, requiresInterpreter: true, safetyBlocked: true,
+        message: 'Negative or contradictory instructions require a live interpreter.' })
+    }
 
     // Direct key lookup (e.g. clicked a quick reassurance chip)
     if (key) {
@@ -63,7 +68,7 @@ export async function POST(request: Request) {
           ...fuzzyMatches[0],
           matchedBy: 'fuzzy',
         }
-        allMatches = fuzzyMatches
+        allMatches = fuzzyMatches.map((match) => ({ ...match, matchedBy: 'fuzzy' as const }))
       }
     } else {
       allMatches = [bestMatch]
@@ -82,9 +87,14 @@ export async function POST(request: Request) {
       bestMatch.signedUrl || getClipUrl(storageFile)
     )
 
+    const hydratedMatches = await Promise.all(allMatches.map(async (match) => {
+      const storageFile = resolveStorageFilename(match.clip.storage_path || match.clip.key)
+      return { ...match, signedUrl: await resolveSignedUrl(storageFile, match.signedUrl || getClipUrl(storageFile)) }
+    }))
+    bestMatch = hydratedMatches.find((match) => match.clip.key === bestMatch!.clip.key) || bestMatch
     return NextResponse.json({
       match: bestMatch,
-      allMatches,
+      allMatches: hydratedMatches,
     })
   } catch (error) {
     return apiError(error)
