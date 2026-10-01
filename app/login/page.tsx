@@ -76,7 +76,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
         <div className="rounded-2xl bg-white/10 p-5 space-y-3 text-sm">
           <span className="block text-xs font-bold tracking-[0.08em] text-teal-200">DEMO ACCOUNTS</span>
           <div className="grid sm:grid-cols-2 gap-3">
@@ -92,7 +91,6 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
-        )}
       </aside>
 
       {/* Role choices */}

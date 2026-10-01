@@ -124,7 +124,6 @@ export default function InterpreterAuthPage() {
             </form>
 
             {/* Evaluation Credentials Helper for Judges */}
-            {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
               <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" /> Registered Interpreter Pool (Click to Fill)
@@ -163,7 +162,6 @@ export default function InterpreterAuthPage() {
                 </button>
               </div>
             </div>
-            )}
           </CardContent>
         </Card>
       </div>
