@@ -18,6 +18,7 @@ import {
   Sparkles,
   PhoneOff,
   Hand,
+  HeartHandshake,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -323,6 +324,19 @@ export default function PatientPage() {
               <Shield className="w-4 h-4" /> Video stays on this tablet
             </span>
           </section>
+
+          <section aria-label="Reassurance" className="rounded-[22px] bg-teal-surface p-5 flex gap-4 items-start">
+            <span className="w-11 h-11 shrink-0 rounded-full bg-teal text-white flex items-center justify-center">
+              <HeartHandshake className="w-5 h-5" />
+            </span>
+            <div className="flex flex-col gap-1">
+              <span className="text-lg font-bold text-teal-ink">You are safe. Staff are nearby.</span>
+              <span lang="hi" className="text-[15px] font-medium text-teal-ink/85">आप सुरक्षित हैं। स्टाफ़ पास में है।</span>
+              <span className="text-[15px] text-secondary-foreground mt-1">
+                Tap a card and a nurse sees it straight away. Their reply appears on this screen in sign language.
+              </span>
+            </div>
+          </section>
         </div>
 
         {/* ───── Right: confirmations + pictograms ───── */}
@@ -348,9 +362,6 @@ export default function PatientPage() {
           )}
 
           <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-bold">
-              Tap to tell us how you feel <span lang="hi" className="font-medium text-base text-muted-foreground">/ अपनी तकलीफ़ बताएं</span>
-            </h2>
             <PictogramGrid onTriggerAlert={handleTriggerAlert} />
           </div>
         </div>

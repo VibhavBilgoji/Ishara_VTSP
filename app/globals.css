@@ -222,13 +222,6 @@
   }
 }
 
-/* ===== Patient tablet: high-contrast overrides ===== */
-.patient-view {
-  --foreground: #0D1B1E;
-  --background: #F4F6F5;
-  --primary: #0B5563;
-  --destructive: #C8281E;
-}
 
 /* ===== Night Light Mode: Blue-light cut for clinical night shifts ===== */
 html.night-light {

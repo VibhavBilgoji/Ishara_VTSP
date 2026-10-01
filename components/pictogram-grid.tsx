@@ -38,8 +38,12 @@ export function PictogramGrid({ onTriggerAlert, disabled = false }: PictogramGri
 
   return (
     <div className="w-full flex flex-col gap-4">
-      {/* Emergency row: always visible, above the fold */}
-      <div className="grid grid-cols-3 gap-3" aria-label="Emergency">
+      {/* Urgent row: always visible, above the fold */}
+      <h2 className="flex items-baseline gap-2 text-lg font-bold">
+        Tap to tell us how you feel
+        <span lang="hi" className="text-base font-medium text-muted-foreground">/ अपनी तकलीफ़ बताएं</span>
+      </h2>
+      <div className="grid grid-cols-3 gap-3" aria-label="Urgent and most used">
         {EMERGENCY_P0_PICTOGRAMS.map((item) => (
           <PictogramCard
             key={item.key}
@@ -52,6 +56,10 @@ export function PictogramGrid({ onTriggerAlert, disabled = false }: PictogramGri
       </div>
 
       {/* Other families */}
+      <h2 className="mt-3 flex items-baseline gap-2 text-lg font-bold">
+        More things to ask for
+        <span lang="hi" className="text-base font-medium text-muted-foreground">/ और ज़रूरतें</span>
+      </h2>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full grid grid-cols-3 h-[62px] group-data-horizontal/tabs:h-[62px] p-1.5 rounded-2xl bg-muted gap-1.5">
           <TabsTrigger value="basic" className="rounded-xl h-full text-base font-semibold border-0 bg-transparent text-secondary-foreground shadow-none hover:text-foreground data-active:!bg-card data-active:!text-foreground data-active:!shadow-sm data-[state=active]:!bg-card data-[state=active]:!text-foreground after:hidden">
