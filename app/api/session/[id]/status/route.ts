@@ -1,58 +1,43 @@
 import { NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import { toValidSessionUuid, getSessionChannel, REALTIME_EVENTS } from '@/lib/realtime'
+import { AccessError, apiError, requireSessionAccess, requireSameOrigin } from '@/lib/auth'
+import { getSessionChannel, REALTIME_EVENTS } from '@/lib/realtime'
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params
-    const body = await request.json()
-    const { status, activeMode, interpreterId } = body
-    const validUuid = toValidSessionUuid(id)
-
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        const supabase = createServiceClient()
-        const updateData: any = {}
-        if (status) updateData.status = status
-        if (activeMode) updateData.active_mode = activeMode
-        if (interpreterId) updateData.assigned_interpreter_id = interpreterId
-        if (status === 'closed') updateData.closed_at = new Date().toISOString()
-
-        await supabase.from('sessions').update(updateData).eq('id', validUuid)
-
-        // Broadcast to Realtime channel for session
-        if (status) {
-          const channel = supabase.channel(getSessionChannel(id))
-          channel.subscribe((subStatus) => {
-            if (subStatus === 'SUBSCRIBED') {
-              channel.send({
-                type: 'broadcast',
-                event: REALTIME_EVENTS.STATUS_CHANGE,
-                payload: {
-                  type: 'status_change',
-                  sessionId: id,
-                  newStatus: status,
-                  timestamp: new Date().toISOString(),
-                },
-              })
-            }
-          })
-        }
-      } catch (err) {
-        console.warn('DB session status update error:', err)
-      }
+    const auth = await requireSessionAccess((await params).id)
+    requireSameOrigin(request)
+    const { status, activeMode, interpreterId } = await request.json()
+    const allowed = auth.kind === 'staff'
+      ? ['waiting', 'active', 'interpreter_requested', 'interpreter_connected', 'ai_fallback', 'closed']
+      : auth.kind === 'kiosk' ? ['active', 'ai_fallback'] : ['active', 'interpreter_connected']
+    if (status !== undefined && !allowed.includes(status)) throw new AccessError(403, 'Status change is not permitted')
+    if (activeMode !== undefined && !['pictogram', 'ai_fallback', 'live_interpreter', 'gesture_ai'].includes(activeMode)) {
+      throw new AccessError(400, 'Invalid session mode')
     }
-
-    return NextResponse.json({
-      success: true,
-      sessionId: id,
-      status,
-      activeMode,
+    if (interpreterId !== undefined) throw new AccessError(403, 'Interpreter assignment requires a session claim')
+    if (auth.session.status === 'closed') throw new AccessError(403, 'Session is closed')
+    if (status === undefined && activeMode === undefined) throw new AccessError(400, 'Status or mode is required')
+    const update: Record<string, string | null> = {}
+    if (status !== undefined) update.status = status
+    if (activeMode !== undefined) update.active_mode = activeMode
+    if (status === 'closed') update.closed_at = new Date().toISOString()
+    if (status === 'active') update.assigned_interpreter_id = null
+    if (auth.kind === 'interpreter') {
+      if (!status) throw new AccessError(403, 'Interpreters may only change call status')
+      const { data, error } = await auth.supabase.rpc('set_interpreter_session_status', {
+        target_id: auth.session.id, new_status: status,
+      })
+      if (error) throw error
+      if (!data) throw new AccessError(409, 'Session assignment changed')
+    } else {
+      const { data, error } = await auth.supabase.from('sessions').update(update)
+        .eq('id', auth.session.id).neq('status', 'closed').select('id').maybeSingle()
+      if (error) throw error
+      if (!data) throw new AccessError(409, 'Session is already closed')
+    }
+    if (status) await auth.supabase.channel(getSessionChannel(auth.session.id)).httpSend(REALTIME_EVENTS.STATUS_CHANGE, {
+      type: 'status_change', sessionId: auth.session.id, newStatus: status, timestamp: new Date().toISOString(),
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+    return NextResponse.json({ success: true, sessionId: auth.session.id, status, activeMode })
+  } catch (error) { return apiError(error) }
 }

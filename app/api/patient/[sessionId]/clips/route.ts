@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getClipByKey, getClipUrl } from '@/lib/isl-clips'
+import { apiError, requireKioskOrStaff, requireSameOrigin } from '@/lib/auth'
 
 export async function POST(
   request: Request,
@@ -7,6 +8,8 @@ export async function POST(
 ) {
   try {
     const { sessionId } = await params
+    await requireKioskOrStaff(sessionId)
+    requireSameOrigin(request)
     const body = await request.json()
     const { clipKey } = body
 
@@ -23,7 +26,7 @@ export async function POST(
       clip,
       clipUrl,
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    return apiError(error)
   }
 }

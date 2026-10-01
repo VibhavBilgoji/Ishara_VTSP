@@ -31,6 +31,7 @@ export default function PatientPage() {
   const [lastAlertHindi, setLastAlertHindi] = useState<string | null>(null)
   const [showingConfirmation, setShowingConfirmation] = useState(false)
   const [bedName, setBedName] = useState('Bedside Kiosk (ISL)')
+  const [hospitalName, setHospitalName] = useState('Hospital')
   const [fallbackCountdown, setFallbackCountdown] = useState<number>(30)
 
   useEffect(() => {
@@ -39,6 +40,7 @@ export default function PatientPage() {
       .then((data) => {
         if (data?.session?.patient_display_name) {
           setBedName(data.session.patient_display_name)
+          setHospitalName(data.hospital?.name || 'Hospital')
         }
       })
       .catch(() => {})
@@ -115,7 +117,7 @@ export default function PatientPage() {
   const handleRequestInterpreter = () => {
     setFallbackCountdown(30)
     requestInterpreter({
-      hospitalName: 'Apollo Multi-Specialty Hospital',
+      hospitalName,
       patientName: bedName,
       note: 'Bedside request from patient tablet',
     })

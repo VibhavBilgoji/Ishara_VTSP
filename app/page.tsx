@@ -521,8 +521,8 @@ export default function LandingPage() {
               </div>
             </ScrollReveal>
 
-            {/* Pillar 4 — Vision AI (large) */}
-            <ScrollReveal delay={200} className="md:col-span-2">
+            {/* Pillar 4 — Vision AI */}
+            <ScrollReveal delay={200}>
               <div className="group relative h-full p-7 rounded-2xl bg-gradient-to-br from-white/90 to-white/60 dark:from-white/[0.04] dark:to-white/[0.01] border border-slate-200/80 dark:border-white/[0.06] hover:border-[#084C5B]/30 dark:hover:border-[#084C5B]/40 transition-all duration-500 overflow-hidden shadow-sm dark:shadow-none">
                 <div className="absolute bottom-0 right-0 w-48 h-48 bg-[#0D748A]/4 dark:bg-[#0D748A]/8 rounded-full blur-[80px] group-hover:bg-[#0D748A]/8 dark:group-hover:bg-[#0D748A]/15 transition-all duration-700" />
                 <div className="relative">

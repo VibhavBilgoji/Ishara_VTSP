@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
+import 'server-only'
 
 /**
  * Service-role Supabase client — bypasses RLS.
- * ONLY use in API routes that serve patient-facing requests
- * (patients have no auth, so we use service role scoped to their sessionId).
+ * Use only after verifying kiosk credentials, or in the secret exchange.
  * 
  * NEVER import this in client-side code or expose the service key.
  */

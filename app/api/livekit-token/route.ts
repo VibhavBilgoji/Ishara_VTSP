@@ -1,42 +1,19 @@
 import { NextResponse } from 'next/server'
 import { createLiveKitToken } from '@/lib/livekit'
+import { AccessError, apiError, requireSessionAccess, requireSameOrigin } from '@/lib/auth'
 
 export async function POST(request: Request) {
   try {
+    requireSameOrigin(request)
     const body = await request.json()
-    const { roomName, participantName, identity } = body
-
-    if (!roomName || !participantName) {
-      return NextResponse.json(
-        { error: 'roomName and participantName are required' },
-        { status: 400 }
-      )
+    const auth = await requireSessionAccess(typeof body.roomName === 'string' ? body.roomName : '')
+    if (auth.session.status === 'closed') throw new AccessError(403, 'Session is closed')
+    if (!process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET || !process.env.NEXT_PUBLIC_LIVEKIT_URL) {
+      throw new AccessError(503, 'Video calls are not configured')
     }
-
-    const participantIdentity = identity || `user-${Date.now()}`
-
-    // Check if LiveKit credentials are set
-    if (!process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET) {
-      return NextResponse.json({
-        token: `simulated-token-${roomName}-${participantIdentity}`,
-        serverUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://demo.livekit.cloud',
-        simulated: true,
-        message: 'LiveKit credentials not configured in environment. Using simulated token for demo.',
-      })
-    }
-
-    const token = await createLiveKitToken(
-      roomName,
-      participantName,
-      participantIdentity
-    )
-
-    return NextResponse.json({
-      token,
-      serverUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
-      simulated: false,
-    })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+    const identity = auth.kind === 'kiosk' ? `patient-${auth.session.id}` : `${auth.kind}-${auth.profile!.id}`
+    const name = auth.kind === 'kiosk' ? 'Bedside patient' : auth.profile!.full_name || auth.kind
+    const token = await createLiveKitToken(auth.session.id, name, identity)
+    return NextResponse.json({ token, serverUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL, simulated: false })
+  } catch (error) { return apiError(error) }
 }

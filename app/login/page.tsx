@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
+import { createClient } from '@/lib/supabase/client'
+import { isStaffRole } from '@/lib/roles'
+import { toast } from 'sonner'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -19,7 +22,7 @@ import {
 
 interface ActiveBedItem {
   id: string
-  patient_display_name: string
+  bed_label: string
   status: string
 }
 
@@ -28,54 +31,37 @@ export default function LoginPage() {
   const [bedInput, setBedInput] = useState('')
   const [activeBeds, setActiveBeds] = useState<ActiveBedItem[]>([])
   const [isResolving, setIsResolving] = useState(false)
+  const [isStaff, setIsStaff] = useState(false)
 
-  // Fetch all active hospital beds on mount so user can see & select any bed directly
   useEffect(() => {
-    fetch('/api/session?list=true')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.sessions && Array.isArray(data.sessions)) {
-          setActiveBeds(data.sessions)
-        }
-      })
-      .catch(() => {})
+    async function loadBeds() {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: profile } = await supabase.from('profiles').select('role, hospital_id').eq('id', user.id).single()
+        if (!profile || !isStaffRole(profile.role) || !profile.hospital_id) return
+        setIsStaff(true)
+        const response = await fetch('/api/session?list=true&labels=true')
+        if (response.ok) setActiveBeds((await response.json()).sessions)
+      } catch { /* Anonymous portal selection remains available. */ }
+    }
+    void loadBeds()
   }, [])
 
   const handleOpenBedsideTablet = async (e?: React.FormEvent, directBedOrId?: string) => {
-    if (e) e.preventDefault()
+    e?.preventDefault()
     const target = (directBedOrId || bedInput).trim()
-
-    // Default to Bed 4A canonical session if empty
-    if (!target) {
-      router.push('/patient/00000000-0000-0000-0000-000000000001')
-      return
-    }
-
-    // If it's already a full 36-character UUID, navigate directly
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(target)) {
-      router.push(`/patient/${target}`)
-      return
-    }
-
-    // Otherwise, resolve bed name/number via API (e.g. "Bed 2", "Bed 5", "ICU 2")
+    if (!target) return
     setIsResolving(true)
     try {
-      const res = await fetch(`/api/session?bed=${encodeURIComponent(target)}`)
-      if (res.ok) {
-        const data = await res.json()
-        if (data?.session?.id) {
-          router.push(`/patient/${data.session.id}`)
-          return
-        }
-      }
-    } catch (err) {
-      console.warn('Error resolving bed session:', err)
-    } finally {
-      setIsResolving(false)
-    }
-
-    // Fallback: navigate with target
-    router.push(`/patient/${encodeURIComponent(target)}`)
+      const byId = /^[0-9a-f-]{36}$/i.test(target)
+      const response = await fetch(`/api/session?${byId ? 'id' : 'bed'}=${encodeURIComponent(target)}`)
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Bed not found')
+      router.push(`/dashboard/${data.session.id}`)
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Bed not found') }
+    finally { setIsResolving(false) }
   }
 
   return (
@@ -174,12 +160,12 @@ export default function LoginPage() {
                     Bedside Patient Tablet Kiosk
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Launch a patient bedside tablet by typing a bed number (e.g. <b>Bed 2</b>, <b>Bed 5</b>), selecting an active bed below, or scanning a doctor QR code:
+                    Scan a pairing QR code from the hospital staff dashboard. Staff can sign in to select a bed and create a pairing link.
                   </p>
                 </div>
               </div>
 
-              <form onSubmit={(e) => handleOpenBedsideTablet(e)} className="w-full sm:w-auto flex items-center gap-2">
+              {isStaff && <form onSubmit={(e) => handleOpenBedsideTablet(e)} className="w-full sm:w-auto flex items-center gap-2">
                 <Input
                   placeholder="e.g. Bed 2, Bed 5, or Session ID"
                   value={bedInput}
@@ -198,12 +184,12 @@ export default function LoginPage() {
                     </>
                   ) : (
                     <>
-                      <span>Launch Tablet</span>
+                      <span>Open Bed Console</span>
                       <ExternalLink className="w-3.5 h-3.5" />
                     </>
                   )}
                 </Button>
-              </form>
+              </form>}
             </div>
 
             {/* Quick Live Bed Chips */}
@@ -217,13 +203,13 @@ export default function LoginPage() {
                     key={bed.id}
                     type="button"
                     onClick={() => {
-                      setBedInput(bed.patient_display_name)
+                      setBedInput(bed.bed_label)
                       handleOpenBedsideTablet(undefined, bed.id)
                     }}
                     className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-[#084C5B] dark:text-teal-200 border border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900 transition-colors"
                   >
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
-                    <span>{bed.patient_display_name}</span>
+                    <span>{bed.bed_label}</span>
                   </button>
                 ))}
               </div>
@@ -232,6 +218,7 @@ export default function LoginPage() {
         </Card>
 
         {/* Evaluation Credentials Banner */}
+        {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
         <div className="p-5 rounded-2xl bg-gradient-to-r from-teal-50 to-indigo-50 dark:from-teal-950/40 dark:to-indigo-950/40 border border-teal-200 dark:border-teal-800 shadow-sm space-y-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-teal-700 dark:text-teal-300" />
@@ -265,6 +252,8 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
+
+        )}
 
         {/* Footer */}
         <p className="text-center text-xs text-slate-400 font-medium">

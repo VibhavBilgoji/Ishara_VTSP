@@ -17,7 +17,6 @@ import { toast } from 'sonner'
 import {
   INTERPRETER_REQUESTS_CHANNEL,
   REALTIME_EVENTS,
-  getSessionChannel,
 } from '@/lib/realtime'
 import { createClient } from '@/lib/supabase/client'
 
@@ -217,78 +216,24 @@ export default function InterpreterDashboard() {
   }, [handleNewRequest, handleCancelRequest])
 
   const handleAcceptCall = async (req: IncomingRequest) => {
-    toast.dismiss(`incoming-call-${req.sessionId}`)
-    handledRequestsRef.current.delete(req.sessionId)
-    toast.success(`Connecting to ${req.patientName}...`)
-
-    const statusPayload = {
-      type: 'status_change',
-      sessionId: req.sessionId,
-      newStatus: 'interpreter_connected',
-      timestamp: new Date().toISOString(),
-    }
-
-    // 1. Local BroadcastChannel for same-machine tabs
     try {
-      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-        const bc = new BroadcastChannel(`ishara_session_${req.sessionId}`)
-        bc.postMessage({
-          type: REALTIME_EVENTS.STATUS_CHANGE,
-          payload: statusPayload,
-        })
-        setTimeout(() => {
-          try {
-            bc.close()
-          } catch {}
-        }, 3000)
+      const response = await fetch(`/api/session/${req.sessionId}/claim`, { method: 'POST' })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Could not accept call')
+      toast.dismiss(`incoming-call-${req.sessionId}`)
+      handledRequestsRef.current.delete(req.sessionId)
+      setRequests((prev) => prev.filter((request) => request.id !== req.id))
+      // Same-device tabs still receive the confirmed server status.
+      if ('BroadcastChannel' in window) {
+        const channel = new BroadcastChannel(`ishara_session_${req.sessionId}`)
+        channel.postMessage({ type: REALTIME_EVENTS.STATUS_CHANGE, payload: {
+          type: 'status_change', sessionId: req.sessionId, newStatus: 'interpreter_connected', timestamp: new Date().toISOString(),
+        } })
+        channel.close()
       }
-    } catch {}
-
-    // 2. Supabase Realtime Channel for remote devices
-    try {
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        const supabase = createClient()
-        const sessChannel = supabase.channel(getSessionChannel(req.sessionId))
-        sessChannel.subscribe((subStatus: string) => {
-          if (subStatus === 'SUBSCRIBED') {
-            sessChannel.send({
-              type: 'broadcast',
-              event: REALTIME_EVENTS.STATUS_CHANGE,
-              payload: statusPayload,
-            })
-          }
-        })
-      }
-    } catch {}
-
-    // 3. Remove from pending requests
-    setRequests((prev) => prev.filter((r) => r.id !== req.id))
-
-    // 4. Atomically claim session in database
-    try {
-      const supabase = createClient()
-      await supabase
-        .from('sessions')
-        .update({
-          status: 'interpreter_connected',
-          active_mode: 'live_interpreter',
-          assigned_interpreter_id: user?.id || null,
-        })
-        .eq('id', req.sessionId)
-    } catch {}
-
-    // Also notify backend status endpoint
-    fetch(`/api/session/${req.sessionId}/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        status: 'interpreter_connected',
-        activeMode: 'live_interpreter',
-      }),
-    }).catch(() => {})
-
-    // 5. Route to LiveKit WebRTC video call view
-    router.push(`/interpreter/call/${req.sessionId}`)
+      toast.success(`Connecting to ${req.patientName}...`)
+      router.push(`/interpreter/call/${req.sessionId}`)
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not accept call') }
   }
 
   return (

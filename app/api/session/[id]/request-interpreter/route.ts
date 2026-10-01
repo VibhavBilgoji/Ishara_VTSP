@@ -1,70 +1,30 @@
 import { NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import {
-  toValidSessionUuid,
-  INTERPRETER_REQUESTS_CHANNEL,
-  REALTIME_EVENTS,
-} from '@/lib/realtime'
+import { AccessError, apiError, requireKioskOrStaff, requireSameOrigin, sessionHospital } from '@/lib/auth'
+import { INTERPRETER_REQUESTS_CHANNEL, REALTIME_EVENTS } from '@/lib/realtime'
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params
-    const body = await request.json().catch(() => ({}))
-    const validUuid = toValidSessionUuid(id)
-
-    // Update session status
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      try {
-        const supabase = createServiceClient()
-        await supabase
-          .from('sessions')
-          .update({
-            status: 'interpreter_requested',
-            active_mode: 'live_interpreter',
-          })
-          .eq('id', validUuid)
-
-        await supabase.from('session_events').insert({
-          session_id: validUuid,
-          event_type: 'interpreter_requested',
-          payload: {
-            requestedAt: new Date().toISOString(),
-            note: body.note || 'Urgent clinician bedside request',
-          },
-        })
-
-        // Broadcast to Realtime interpreter-requests channel
-        const interpChannel = supabase.channel(INTERPRETER_REQUESTS_CHANNEL)
-        interpChannel.subscribe((subStatus) => {
-          if (subStatus === 'SUBSCRIBED') {
-            interpChannel.send({
-              type: 'broadcast',
-              event: REALTIME_EVENTS.NEW_REQUEST,
-              payload: {
-                id: `req-${Date.now()}`,
-                sessionId: id,
-                hospitalName: body.hospitalName || 'Ishara Demo Hospital',
-                patientName: body.patientName || 'Bedside Patient (ISL)',
-                note: body.note || 'Urgent clinician bedside request',
-                requestedAt: new Date().toLocaleTimeString(),
-              },
-            })
-          }
-        })
-      } catch (err) {
-        console.warn('DB interpreter request error:', err)
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      sessionId: id,
-      status: 'interpreter_requested',
+    const auth = await requireKioskOrStaff((await params).id)
+    requireSameOrigin(request)
+    const body = await request.json()
+    if (auth.session.status === 'closed') throw new AccessError(403, 'Session is closed')
+    const hospital = await sessionHospital(auth)
+    const requestedAt = new Date().toISOString()
+    const note = typeof body.note === 'string' ? body.note.slice(0, 500) : 'Bedside interpreter request'
+    const { data: updated, error } = await auth.supabase.from('sessions').update({
+      status: 'interpreter_requested', active_mode: 'live_interpreter', requested_at: requestedAt,
+    }).eq('id', auth.session.id).neq('status', 'closed').select('id').maybeSingle()
+    if (error) throw error
+    if (!updated) throw new AccessError(409, 'Session is already closed')
+    const { error: eventError } = await auth.supabase.from('session_events').insert({
+      session_id: auth.session.id, event_type: 'interpreter_requested', actor_id: auth.profile?.id ?? null,
+      payload: { requestedAt, note },
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
+    if (eventError) throw eventError
+    await auth.supabase.channel(INTERPRETER_REQUESTS_CHANNEL).httpSend(REALTIME_EVENTS.NEW_REQUEST, {
+      id: crypto.randomUUID(), sessionId: auth.session.id, hospitalName: hospital.name,
+      patientName: auth.session.patient_display_name, note, requestedAt,
+    })
+    return NextResponse.json({ success: true, sessionId: auth.session.id, status: 'interpreter_requested' })
+  } catch (error) { return apiError(error) }
 }

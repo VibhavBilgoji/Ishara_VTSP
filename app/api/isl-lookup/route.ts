@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
 import { searchClips, getClipByKey, getClipUrl, resolveStorageFilename } from '@/lib/isl-clips'
 import { matchClipWithGemini } from '@/lib/gemini-isl'
-import { createServiceClient } from '@/lib/supabase/service'
+import { createClient } from '@/lib/supabase/server'
+import { apiError, requireStaff, requireSameOrigin } from '@/lib/auth'
 
 async function resolveSignedUrl(storageFile: string, defaultUrl: string): Promise<string> {
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     try {
-      const supabase = createServiceClient()
+      const supabase = await createClient()
       const { data } = await supabase.storage
         .from('isl-clips')
         .createSignedUrl(storageFile, 3600)
@@ -20,8 +21,10 @@ async function resolveSignedUrl(storageFile: string, defaultUrl: string): Promis
 
 export async function POST(request: Request) {
   try {
+    await requireStaff()
+    requireSameOrigin(request)
     const body = await request.json()
-    const query = (body.query || '').trim()
+    const query = typeof body.query === 'string' ? body.query.trim() : ''
     const key = body.key
 
     // Direct key lookup (e.g. clicked a quick reassurance chip)
@@ -83,7 +86,7 @@ export async function POST(request: Request) {
       match: bestMatch,
       allMatches,
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error) {
+    return apiError(error)
   }
 }

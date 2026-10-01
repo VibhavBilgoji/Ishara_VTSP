@@ -220,7 +220,7 @@ export function TranscriptFeed({
                   }}
                   className="h-6 px-2 text-[11px] font-bold bg-red-600 hover:bg-red-700 text-white rounded-md shadow-xs"
                 >
-                  Confirm Clear
+                  Hide Earlier
                 </Button>
                 <Button
                   type="button"
@@ -239,10 +239,10 @@ export function TranscriptFeed({
                 size="sm"
                 onClick={() => setConfirmClear(true)}
                 className="h-6 px-2 text-[11px] font-semibold text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-md flex items-center gap-1 transition-colors"
-                title="Clear interaction log"
+                title="Hide earlier interactions from this view"
               >
                 <Trash2 className="w-3 h-3" />
-                <span>Clear Log</span>
+                <span>Hide Earlier</span>
               </Button>
             )
           )}

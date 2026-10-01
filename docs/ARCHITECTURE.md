@@ -160,14 +160,14 @@ interpreter_presence (
 
 *   **Profiles:** Users can read their own row. Hospital staff can read profiles within their `hospital_id`. Interpreters are globally visible (name and presence only).
 *   **Sessions & Events:** Readable by staff/doctors in the owning hospital and the currently assigned interpreter. 
-*   **Patient Routes:** The patient tablet uses the session UUID in the URL as a capability token. It does not require login. Backend API routes for patient actions (`/api/patient/*`) use the Supabase Service Role key to bypass RLS, validating the session UUID provided.
+*   **Patient Routes:** The patient tablet exchanges a five-minute, one-use pairing secret for an httpOnly cookie. Backend routes verify the token hash, session, expiration, and revocation before using service-role for that session. A session UUID alone grants no access.
 *   **ISL Clips:** Publicly readable. Writable only by admins/service role.
 
-## Demo Setup & DEMO_MODE
+## Demo Setup
 
 Given the 24-hour time constraint, a smooth demo is critical:
-*   A `DEMO_MODE` environment variable will bypass standard Supabase Magic Link auth.
-*   When active, `/login` will display quick-login buttons for pre-seeded accounts (e.g., "Login as Demo Doctor", "Login as Demo Interpreter").
+*   `NEXT_PUBLIC_DEMO_MODE=true` displays evaluation credentials; all accounts still authenticate through Supabase and are checked against their profile role.
+*   When enabled, the portal pages display credentials for pre-seeded evaluation accounts. Authentication and role checks still apply.
 *   The demo will assume a single predefined hospital entity.
 *   ISL video clips are pre-generated and stored in Supabase Storage.
 *   Interpreter flow is simplified to a single "Accept" button on the interpreter dashboard.
