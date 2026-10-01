@@ -77,9 +77,9 @@ export function ISLVideoPlayer({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center p-3 sm:p-6 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-3xl bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border-2 border-[#084C5B] flex flex-col">
+      <div className="w-full max-w-3xl bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border-2 border-teal flex flex-col">
         {/* Header Bar */}
-        <div className="flex items-center justify-between p-3 sm:p-4 bg-[#084C5B] text-white">
+        <div className="flex items-center justify-between p-3 sm:p-4 bg-teal text-white">
           <div className="flex items-center gap-2">
             <Video className="w-5 h-5 text-teal-300 animate-pulse" />
             <div>
@@ -125,7 +125,7 @@ export function ISLVideoPlayer({
                 <p className="text-xs font-bold text-teal-400 tracking-widest uppercase">
                   Indian Sign Language Clip
                 </p>
-                <h3 className="text-2xl font-black text-white">{clipLabel}</h3>
+                <h3 className="text-2xl font-bold text-white">{clipLabel}</h3>
                 {resolvedHindi && (
                   <p className="text-lg font-medium text-teal-200">{resolvedHindi}</p>
                 )}
@@ -139,7 +139,7 @@ export function ISLVideoPlayer({
           {/* Subtitle Banner at bottom of video */}
           <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 text-center">
             <div className="inline-block bg-black/80 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20">
-              <span className="text-lg sm:text-2xl font-black text-white tracking-wide">
+              <span className="text-lg sm:text-2xl font-bold text-white tracking-wide">
                 &ldquo;{clipLabel}&rdquo;
               </span>
               {resolvedHindi && (

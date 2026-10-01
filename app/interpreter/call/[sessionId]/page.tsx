@@ -66,7 +66,7 @@ export default function InterpreterCallPage() {
                 className="object-contain"
               />
             </div>
-            <h1 className="text-sm font-black text-teal-300">
+            <h1 className="text-sm font-bold text-teal-300">
               Ishara Live Relay Room
             </h1>
           </div>

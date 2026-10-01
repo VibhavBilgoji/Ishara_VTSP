@@ -8,7 +8,7 @@ export interface DetailedPictogram extends PictogramItem {
 
 // Design System Semantic Color Tokens with robust WCAG AAA light & dark mode hover/active states
 const COLOR_EMERGENCY_RED =
-  'bg-red-50 border-red-500 text-red-700 hover:bg-red-100/90 hover:border-red-600 hover:text-red-900 active:bg-red-200 dark:bg-red-950/40 dark:border-red-600/80 dark:text-red-200 dark:hover:bg-red-900/60 dark:hover:border-red-400 dark:hover:text-white dark:active:bg-red-950/90'
+  'bg-red-50 border-red-600 text-red-800 hover:bg-red-100/90 hover:border-red-600 hover:text-red-900 active:bg-red-200 dark:bg-red-950/40 dark:border-red-600/80 dark:text-red-200 dark:hover:bg-red-900/60 dark:hover:border-red-400 dark:hover:text-white dark:active:bg-red-950/90'
 
 const COLOR_PAIN_AMBER =
   'bg-amber-50 border-amber-500 text-amber-800 hover:bg-amber-100/90 hover:border-amber-600 hover:text-amber-950 active:bg-amber-200 dark:bg-amber-950/40 dark:border-amber-600/80 dark:text-amber-200 dark:hover:bg-amber-900/60 dark:hover:border-amber-400 dark:hover:text-white dark:active:bg-amber-950/90'
@@ -17,7 +17,7 @@ const COLOR_ALLERGY_PURPLE =
   'bg-purple-50 border-purple-500 text-purple-800 hover:bg-purple-100/90 hover:border-purple-600 hover:text-purple-950 active:bg-purple-200 dark:bg-purple-950/40 dark:border-purple-600/80 dark:text-purple-200 dark:hover:bg-purple-900/60 dark:hover:border-purple-400 dark:hover:text-white dark:active:bg-purple-950/90'
 
 const COLOR_BASIC_TEAL =
-  'bg-teal-50 border-[#084C5B] text-[#084C5B] hover:bg-teal-100/90 hover:border-[#0D748A] hover:text-[#00222a] active:bg-teal-200 dark:bg-teal-950/40 dark:border-teal-500/80 dark:text-teal-200 dark:hover:bg-teal-900/60 dark:hover:border-teal-400 dark:hover:text-white dark:active:bg-teal-950/90'
+  'bg-teal-50 border-teal text-teal hover:bg-teal-100/90 hover:border-teal-light hover:text-[#00222a] active:bg-teal-200 dark:bg-teal-950/40 dark:border-teal-500/80 dark:text-teal-200 dark:hover:bg-teal-900/60 dark:hover:border-teal-400 dark:hover:text-white dark:active:bg-teal-950/90'
 
 const COLOR_BASIC_BLUE =
   'bg-blue-50 border-blue-400 text-blue-800 hover:bg-blue-100/90 hover:border-blue-500 hover:text-blue-950 active:bg-blue-200 dark:bg-blue-950/40 dark:border-blue-500/80 dark:text-blue-200 dark:hover:bg-blue-900/60 dark:hover:border-blue-400 dark:hover:text-white dark:active:bg-blue-950/90'

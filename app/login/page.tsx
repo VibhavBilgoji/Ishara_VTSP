@@ -4,18 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Stethoscope,
-  Video,
-  Tablet,
-  ArrowRight,
-  Sparkles,
-  ExternalLink,
-  Loader2,
-} from 'lucide-react'
+import { Stethoscope, Video, BedDouble, ArrowRight, Loader2 } from 'lucide-react'
 
 interface ActiveBedItem {
   id: string
@@ -79,197 +68,141 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col justify-center items-center p-4 sm:p-6">
-      <div className="w-full max-w-4xl space-y-8 my-8">
-        {/* Header Branding */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-teal-50 dark:bg-teal-950 border border-teal-200 dark:border-teal-800 shadow-sm mb-2">
-            <div className="relative w-14 h-14 sm:w-16 sm:h-16">
-              <Image
-                src="/logo.png"
-                alt="Ishara Logo"
-                fill
-                sizes="64px"
-                className="object-contain"
-                priority
-              />
-            </div>
-          </div>
+    <main className="min-h-screen grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] bg-background text-foreground">
+      {/* Brand panel */}
+      <aside className="bg-teal text-white px-6 py-8 sm:px-12 sm:py-12 flex flex-col justify-between gap-10">
+        <Link href="/" className="flex items-center gap-3 w-fit">
+          <span className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center">
+            <Image src="/logo.png" alt="" width={40} height={40} className="object-contain" priority />
+          </span>
+          <span className="flex flex-col leading-tight">
+            <span className="font-heading font-bold text-2xl">Ishara</span>
+            <span lang="hi" className="text-sm text-teal-100">इशारा</span>
+          </span>
+        </Link>
 
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-[#084C5B] dark:text-teal-300">
-            Ishara • इशारा
+        <div className="space-y-5 max-w-md">
+          <h1 className="font-heading font-bold text-4xl sm:text-5xl leading-[1.02] tracking-tight">
+            Who is joining the bridge today?
           </h1>
-          <p className="text-base sm:text-xl text-slate-600 dark:text-slate-300 max-w-xl mx-auto font-medium">
-            Clinical Communication Platform for Deaf & Mute Indian Sign Language Patients
+          <p className="text-lg leading-relaxed text-teal-100">
+            Choose your role. Staff and interpreters sign in; a bedside tablet pairs with a bed code.
           </p>
         </div>
 
-        {/* The Portals Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Portal 1: Hospital Doctor Staff */}
-          <Link href="/auth/hospital" className="block group">
-            <Card className="h-full border-2 border-slate-200 dark:border-slate-800 group-hover:border-[#084C5B] transition-all duration-200 shadow-sm group-hover:shadow-xl rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
-              <CardHeader className="pb-3 bg-teal-50/50 dark:bg-teal-950/20 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <div className="p-3 rounded-xl bg-[#084C5B] text-white">
-                    <Stethoscope className="w-6 h-6" />
-                  </div>
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-teal-100 text-teal-800 dark:bg-teal-900/60 dark:text-teal-200">
-                    Clinical Portal
-                  </span>
-                </div>
-                <CardTitle className="text-xl font-bold mt-3 text-slate-900 dark:text-white">
-                  Hospital Doctor & Staff
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-3">
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Access patient bedside communication console, 2-way ISL signs, pictogram triage alerts, and remote interpreter calls.
-                </p>
-                <div className="flex items-center text-sm font-bold text-[#084C5B] dark:text-teal-400 group-hover:translate-x-1 transition-transform">
-                  Enter Hospital Dashboard <ArrowRight className="w-4 h-4 ml-1" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          {/* Portal 2: Remote ISL Interpreter */}
-          <Link href="/auth/interpreter" className="block group">
-            <Card className="h-full border-2 border-slate-200 dark:border-slate-800 group-hover:border-[#4F46E5] transition-all duration-200 shadow-sm group-hover:shadow-xl rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
-              <CardHeader className="pb-3 bg-indigo-50/50 dark:bg-indigo-950/20 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <div className="p-3 rounded-xl bg-[#4F46E5] text-white">
-                    <Video className="w-6 h-6" />
-                  </div>
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200">
-                    Relay Pool
-                  </span>
-                </div>
-                <CardTitle className="text-xl font-bold mt-3 text-slate-900 dark:text-white">
-                  Certified ISL Interpreter
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-3">
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Join incoming hospital paging queues, accept live emergency video calls, and provide real-time Indian Sign Language interpretation.
-                </p>
-                <div className="flex items-center text-sm font-bold text-[#4F46E5] dark:text-indigo-400 group-hover:translate-x-1 transition-transform">
-                  Enter Interpreter Dashboard <ArrowRight className="w-4 h-4 ml-1" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
+        <div className="rounded-2xl bg-white/10 p-5 space-y-3 text-sm">
+          <span className="block text-xs font-bold tracking-[0.08em] text-teal-200">DEMO ACCOUNTS</span>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="space-y-0.5">
+              <span className="font-semibold block">Hospital doctor</span>
+              <span className="font-mono text-teal-100 block break-all">dr.sharma@apollo.health</span>
+              <span className="font-mono text-teal-100 block">Ishara2026!</span>
+            </div>
+            <div className="space-y-0.5">
+              <span className="font-semibold block">ISL interpreter</span>
+              <span className="font-mono text-teal-100 block break-all">ananya.isl@relay.org</span>
+              <span className="font-mono text-teal-100 block">Ishara2026!</span>
+            </div>
+          </div>
         </div>
+      </aside>
 
-        {/* Portal 3: Bedside Tablet Kiosk Quick Entry */}
-        <Card className="border-2 border-slate-200 dark:border-slate-800 shadow-md rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
-          <CardContent className="p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-teal-100 text-teal-900 dark:bg-teal-950 dark:text-teal-300 shrink-0">
-                  <Tablet className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white">
-                    Bedside Patient Tablet Kiosk
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Launch a patient bedside tablet by typing a bed number (e.g. <b>Bed 2</b>, <b>Bed 5</b>), selecting an active bed below, or scanning a doctor QR code:
-                  </p>
-                </div>
-              </div>
+      {/* Role choices */}
+      <div className="px-4 py-8 sm:px-12 sm:py-12 flex flex-col justify-center gap-4 w-full max-w-2xl mx-auto">
+        <Link
+          href="/auth/hospital"
+          className="group flex items-center gap-5 p-6 rounded-[20px] bg-card border border-border hover:border-teal hover:-translate-y-0.5 transition-all"
+        >
+          <span className="w-14 h-14 shrink-0 rounded-2xl bg-teal text-white flex items-center justify-center">
+            <Stethoscope className="w-6 h-6" />
+          </span>
+          <span className="flex-1 space-y-1">
+            <span className="block font-heading font-bold text-xl">Hospital staff</span>
+            <span className="block text-[15px] leading-normal text-muted-foreground">
+              Doctors and nurses: bed roster, alerts and ISL replies.
+            </span>
+          </span>
+          <ArrowRight className="w-5 h-5 text-teal-ink group-hover:translate-x-1 transition-transform" />
+        </Link>
 
-              <form onSubmit={(e) => handleOpenBedsideTablet(e)} className="w-full sm:w-auto flex items-center gap-2">
-                <Input
-                  placeholder="e.g. Bed 2, Bed 5, or Session ID"
-                  value={bedInput}
-                  onChange={(e) => setBedInput(e.target.value)}
-                  className="h-10 text-xs w-full sm:w-56 rounded-xl"
-                />
-                <Button
-                  type="submit"
-                  disabled={isResolving}
-                  className="bg-[#084C5B] hover:bg-[#0D748A] text-white font-bold text-xs h-10 px-4 rounded-xl shrink-0 flex items-center gap-1.5"
+        <Link
+          href="/auth/interpreter"
+          className="group flex items-center gap-5 p-6 rounded-[20px] bg-card border border-border hover:border-indigo hover:-translate-y-0.5 transition-all"
+        >
+          <span className="w-14 h-14 shrink-0 rounded-2xl bg-indigo text-white flex items-center justify-center">
+            <Video className="w-6 h-6" />
+          </span>
+          <span className="flex-1 space-y-1">
+            <span className="block font-heading font-bold text-xl">ISL interpreter</span>
+            <span className="block text-[15px] leading-normal text-muted-foreground">
+              Certified interpreters: take live video calls from wards.
+            </span>
+          </span>
+          <ArrowRight className="w-5 h-5 text-indigo-ink group-hover:translate-x-1 transition-transform" />
+        </Link>
+
+        <form
+          onSubmit={(e) => handleOpenBedsideTablet(e)}
+          className="flex flex-col gap-4 p-6 rounded-[20px] bg-card border border-border"
+        >
+          <div className="flex items-center gap-5">
+            <span className="w-14 h-14 shrink-0 rounded-2xl bg-teal-surface text-teal-ink flex items-center justify-center">
+              <BedDouble className="w-6 h-6" />
+            </span>
+            <span className="space-y-1">
+              <span className="block font-heading font-bold text-xl">Bedside tablet</span>
+              <span className="block text-[15px] leading-normal text-muted-foreground">
+                Type a bed (e.g. Bed 2), pick an active bed, or scan the QR from the staff console.
+              </span>
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            <label htmlFor="bed-code" className="sr-only">Bed name or session ID</label>
+            <input
+              id="bed-code"
+              placeholder="Bed 2, Bed 5 or session ID"
+              value={bedInput}
+              onChange={(e) => setBedInput(e.target.value)}
+              className="flex-[1_1_220px] h-[52px] px-4 rounded-xl border-[1.5px] border-input bg-card text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-ring"
+            />
+            <button
+              type="submit"
+              disabled={isResolving}
+              className="h-[52px] px-6 rounded-xl bg-teal hover:bg-teal-light text-white font-semibold flex items-center gap-2 disabled:opacity-70 transition-colors"
+            >
+              {isResolving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Finding bed…
+                </>
+              ) : (
+                'Pair tablet'
+              )}
+            </button>
+          </div>
+
+          {activeBeds.length > 0 && (
+            <div className="pt-4 border-t border-border flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold tracking-[0.06em] text-muted-foreground mr-1">ACTIVE BEDS</span>
+              {activeBeds.map((bed) => (
+                <button
+                  key={bed.id}
+                  type="button"
+                  onClick={() => {
+                    setBedInput(bed.patient_display_name)
+                    handleOpenBedsideTablet(undefined, bed.id)
+                  }}
+                  className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full border border-input bg-card text-sm font-semibold text-secondary-foreground hover:border-teal hover:text-teal-ink transition-colors"
                 >
-                  {isResolving ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Resolving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Launch Tablet</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </>
-                  )}
-                </Button>
-              </form>
+                  <span className="w-2 h-2 rounded-full bg-success" />
+                  {bed.patient_display_name}
+                </button>
+              ))}
             </div>
+          )}
+        </form>
 
-            {/* Quick Live Bed Chips */}
-            {activeBeds.length > 0 && (
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center gap-2">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  Active Hospital Beds:
-                </span>
-                {activeBeds.map((bed) => (
-                  <button
-                    key={bed.id}
-                    type="button"
-                    onClick={() => {
-                      setBedInput(bed.patient_display_name)
-                      handleOpenBedsideTablet(undefined, bed.id)
-                    }}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-[#084C5B] dark:text-teal-200 border border-teal-200 dark:border-teal-800 hover:bg-teal-100 dark:hover:bg-teal-900 transition-colors"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
-                    <span>{bed.patient_display_name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Evaluation Credentials Banner */}
-        <div className="p-5 rounded-2xl bg-gradient-to-r from-teal-50 to-indigo-50 dark:from-teal-950/40 dark:to-indigo-950/40 border border-teal-200 dark:border-teal-800 shadow-sm space-y-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-teal-700 dark:text-teal-300" />
-            <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
-              Evaluation & Judge Credentials (Pre-Seeded)
-            </h4>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-teal-200 dark:border-teal-800/60">
-              <span className="font-bold text-[#084C5B] dark:text-teal-300 block mb-0.5">
-                Hospital Doctor Account:
-              </span>
-              <p className="text-slate-600 dark:text-slate-300 font-mono">
-                Email: <b>dr.sharma@apollo.health</b>
-              </p>
-              <p className="text-slate-600 dark:text-slate-300 font-mono">
-                Password: <b>Ishara2026!</b>
-              </p>
-            </div>
-
-            <div className="p-3 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-indigo-200 dark:border-indigo-800/60">
-              <span className="font-bold text-[#4F46E5] dark:text-indigo-300 block mb-0.5">
-                ISL Interpreter Account:
-              </span>
-              <p className="text-slate-600 dark:text-slate-300 font-mono">
-                Email: <b>ananya.isl@relay.org</b>
-              </p>
-              <p className="text-slate-600 dark:text-slate-300 font-mono">
-                Password: <b>Ishara2026!</b>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <p className="text-center text-xs text-slate-400 font-medium">
-          Ishara Clinical Communication Platform • Enterprise Production Architecture
-        </p>
+        <p className="text-sm text-muted-foreground">Trouble signing in? Ask your ward administrator.</p>
       </div>
     </main>
   )

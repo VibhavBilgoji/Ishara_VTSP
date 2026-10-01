@@ -61,10 +61,10 @@ export default function InterpreterAuthPage() {
 
         <Card className="border-2 border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
           <CardHeader className="bg-indigo-50/50 dark:bg-indigo-950/20 border-b border-slate-100 dark:border-slate-800 pb-4">
-            <div className="w-10 h-10 rounded-xl bg-[#4F46E5] text-white flex items-center justify-center mb-2 shadow">
+            <div className="w-10 h-10 rounded-xl bg-indigo text-white flex items-center justify-center mb-2 shadow">
               <Video className="w-5 h-5" />
             </div>
-            <CardTitle className="text-xl font-black text-slate-900 dark:text-white">
+            <CardTitle className="text-xl font-bold text-slate-900 dark:text-white">
               ISL Interpreter Portal
             </CardTitle>
             <p className="text-xs text-slate-500">
@@ -111,7 +111,7 @@ export default function InterpreterAuthPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 rounded-xl bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold"
+                className="w-full h-11 rounded-xl bg-indigo hover:bg-indigo-hover text-white font-bold"
               >
                 {loading ? 'Authenticating...' : 'Sign In to Interpreter Dashboard'}
               </Button>

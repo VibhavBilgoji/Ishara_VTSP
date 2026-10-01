@@ -102,7 +102,7 @@ export function PainScale({ open, onOpenChange, onSubmit }: PainScaleProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-2xl w-full p-5 sm:p-7 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800">
         <DialogHeader className="text-center space-y-1.5 pb-1">
-          <DialogTitle className="text-xl sm:text-2xl font-black text-[#084C5B] dark:text-teal-300">
+          <DialogTitle className="text-xl sm:text-2xl font-bold text-teal dark:text-teal-300">
             Pain Scale Rating / दर्द का स्तर
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto">
@@ -119,14 +119,14 @@ export function PainScale({ open, onOpenChange, onSubmit }: PainScaleProps) {
               className={`
                 flex flex-col items-center justify-between p-2.5 sm:p-3.5 py-3 sm:py-4 rounded-xl border-2
                 transition-all duration-200 min-h-[96px] sm:min-h-[116px] cursor-pointer
-                active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#084C5B] dark:focus-visible:ring-teal-400
+                active:scale-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-teal dark:focus-visible:ring-teal-400
                 shadow-xs hover:shadow-md hover:-translate-y-0.5
                 ${item.color}
-                ${selectedLevel === item.level ? 'ring-4 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 ring-[#084C5B] dark:ring-teal-400 scale-[1.02]' : ''}
+                ${selectedLevel === item.level ? 'ring-4 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 ring-teal dark:ring-teal-400 scale-[1.02]' : ''}
               `}
             >
               <span className="text-2xl sm:text-3xl">{item.emoji}</span>
-              <span className="text-lg sm:text-2xl font-black my-0.5">{item.level}</span>
+              <span className="text-lg sm:text-2xl font-bold my-0.5">{item.level}</span>
               <span className="text-[11px] sm:text-xs font-bold leading-tight text-center break-words max-w-full px-0.5">
                 {item.label}
               </span>

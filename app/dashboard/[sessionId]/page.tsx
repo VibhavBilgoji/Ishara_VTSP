@@ -16,9 +16,7 @@ import {
   MicOff,
   Send,
   ExternalLink,
-  Sparkles,
   Clock,
-  FileText,
   Loader2,
   QrCode,
   Copy,
@@ -30,7 +28,6 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -430,393 +427,316 @@ export default function DashboardPage() {
     }
   }, [sessionStatus])
 
+  const severeCount = events.filter(isSevereOrCriticalEvent).length
+  const quickPhrases = [
+    { label: 'You are safe', key: 'you-are-safe' },
+    { label: 'We are helping you', key: 'we-are-helping' },
+    { label: 'Take this medicine', key: 'take-medicine' },
+    { label: 'Stay still', key: 'stay-still' },
+    { label: 'Relax / breathe', key: 'relax' },
+    { label: 'Do you agree?', key: 'do-you-agree' },
+    { label: 'We need to do a test', key: 'need-to-do-test' },
+    { label: 'Do you have family here?', key: 'family-here' },
+  ]
+
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
-      {/* Top Navigation */}
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-teal-50 border border-teal-200 flex items-center justify-center shrink-0">
-              <Image
-                src="/logo.png"
-                alt="Ishara Logo"
-                fill
-                sizes="36px"
-                className="object-contain p-1"
-                priority
-              />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-black text-[#084C5B] dark:text-teal-300">
-                  Ishara Clinical Station
-                </h1>
-                <span className="px-2 py-0.5 rounded text-xs font-bold bg-teal-100 text-teal-800 dark:bg-teal-900/60 dark:text-teal-200">
-                  Doctor / Staff Monitor
-                </span>
-              </div>
-              <p className="text-xs text-slate-500">
-                Patient: <span className="font-bold text-slate-800 dark:text-slate-200">{patientDisplayName}</span> • Session: {sessionId.slice(0, 8)}
-              </p>
-            </div>
-          </div>
+    <main className="min-h-screen bg-background text-foreground flex flex-col">
+      {/* Top bar */}
+      <header className="bg-card border-b border-border sticky top-0 z-30">
+        <div className="px-4 sm:px-6 py-3 flex items-center gap-4 flex-wrap">
+          <button
+            type="button"
+            onClick={() => router.push('/dashboard')}
+            className="flex items-center gap-2.5 text-foreground"
+            aria-label="Back to bed roster"
+          >
+            <span className="relative w-9 h-9 rounded-[10px] border border-border bg-white overflow-hidden shrink-0">
+              <Image src="/logo.png" alt="" fill sizes="36px" className="object-contain p-1" priority />
+            </span>
+            <span className="font-heading font-bold text-[19px]">Ishara</span>
+          </button>
+          <span className="hidden sm:block h-6 w-px bg-border" />
+          <span className="hidden sm:block text-[15px] font-semibold text-secondary-foreground">Staff console</span>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="ml-auto flex items-center gap-2 flex-wrap">
             <Button
-              variant="ghost"
-              size="sm"
+              variant="outline"
               onClick={() => router.push('/dashboard')}
-              className="text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white flex items-center gap-1 border border-slate-300 dark:border-slate-700"
+              className="h-10 rounded-[10px] border-input text-sm font-semibold gap-1.5"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Bed Roster</span>
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Bed roster</span>
             </Button>
-
             <Button
               variant="outline"
-              size="sm"
               onClick={() => setPairingOpen(true)}
-              className="border-teal-300 text-[#084C5B] hover:bg-teal-50 dark:border-teal-700 dark:text-teal-300 text-xs flex items-center gap-1.5"
+              className="h-10 rounded-[10px] border-input text-sm font-semibold gap-1.5"
             >
-              <QrCode className="w-3.5 h-3.5" />
-              Pair Tablet
+              <QrCode className="w-4 h-4" />
+              <span className="hidden sm:inline">Pair tablet</span>
             </Button>
-
             <Button
               variant="outline"
-              size="sm"
               onClick={() => window.open(`/patient/${sessionId}`, '_blank')}
-              className="border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 text-xs flex items-center gap-1.5"
+              className="h-10 rounded-[10px] border-input text-sm font-semibold gap-1.5"
             >
-              <ExternalLink className="w-3.5 h-3.5" />
-              Open Tablet
+              <ExternalLink className="w-4 h-4" />
+              <span className="hidden sm:inline">Open tablet</span>
             </Button>
-
-            {sessionStatus === 'interpreter_requested' ? (
-              <div className="flex items-center gap-1.5">
-                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200 border border-amber-300">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping inline-block" />
-                  Paging...
-                </span>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={cancelInterpreterRequest}
-                  className="h-8 px-2.5 text-xs font-bold border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 flex items-center gap-1"
-                >
-                  <XCircle className="w-3.5 h-3.5" />
-                  <span>Cancel</span>
-                </Button>
-              </div>
-            ) : (
-              <Button
-                size="sm"
-                onClick={handlePageInterpreter}
-                disabled={isPagingInterpreter || sessionStatus === 'interpreter_connected'}
-                className={`
-                  text-xs font-bold flex items-center gap-1.5
-                  ${sessionStatus === 'interpreter_connected'
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                    : 'bg-[#4F46E5] hover:bg-[#4338CA] text-white'
-                  }
-                `}
-              >
-                <Video className="w-4 h-4" />
-                {sessionStatus === 'interpreter_connected'
-                  ? 'Interpreter Active'
-                  : isPagingInterpreter
-                  ? 'Paging...'
-                  : 'Page Interpreter'}
-              </Button>
-            )}
           </div>
         </div>
       </header>
 
-      {/* Main Dashboard Grid */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-5">
-        {/* Gesture Banner — appears when patient signs */}
-        <GestureBanner
-          latestGesture={latestGesture}
-          gestureHistory={gestureHistory}
-          visible={gestureBanner}
-          autoSpeak={autoSpeak}
-          onToggleAutoSpeak={setAutoSpeak}
-          onDismiss={() => setGestureBanner(false)}
-          onSpeak={(text) => {
-            if (typeof window !== 'undefined' && window.speechSynthesis) {
-              window.speechSynthesis.cancel()
-              window.speechSynthesis.speak(new SpeechSynthesisUtterance(text))
-            }
-          }}
-        />
-        {/* Emergency Alert Banner (P0 Realtime) */}
-        <EmergencyAlertBanner
-          alert={activeAlert}
-          patientDisplayName={patientDisplayName}
-          onAcknowledge={clearAlert}
-          onRequestInterpreter={handlePageInterpreter}
-        />
+      <div className="flex-1 w-full max-w-[1400px] mx-auto p-4 sm:p-6 grid lg:grid-cols-[minmax(0,1fr)_340px] gap-5 items-start">
+        {/* ───── Main column ───── */}
+        <div className="flex flex-col gap-4 min-w-0">
+          <GestureBanner
+            latestGesture={latestGesture}
+            gestureHistory={gestureHistory}
+            visible={gestureBanner}
+            autoSpeak={autoSpeak}
+            onToggleAutoSpeak={setAutoSpeak}
+            onDismiss={() => setGestureBanner(false)}
+            onSpeak={(text) => {
+              if (typeof window !== 'undefined' && window.speechSynthesis) {
+                window.speechSynthesis.cancel()
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance(text))
+              }
+            }}
+          />
+          <EmergencyAlertBanner
+            alert={activeAlert}
+            patientDisplayName={patientDisplayName}
+            onAcknowledge={clearAlert}
+            onRequestInterpreter={handlePageInterpreter}
+          />
 
-        {/* 60-Second Auto-Fallback Escalation Alert */}
-        {sessionStatus === 'interpreter_requested' && (
-          <div
-            role="status"
-            className={`w-full p-4 rounded-2xl border-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md transition-all ${
-              escalationTriggered
-                ? 'bg-amber-50 border-amber-500 text-amber-950 dark:bg-amber-950/40 dark:border-amber-500 dark:text-amber-100'
-                : 'bg-indigo-50 border-indigo-400 text-indigo-950 dark:bg-indigo-950/40 dark:border-indigo-600 dark:text-indigo-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div className={`p-2.5 rounded-xl shrink-0 ${escalationTriggered ? 'bg-amber-500 text-white' : 'bg-indigo-600 text-white'}`}>
-                {escalationTriggered ? <AlertTriangle className="w-5 h-5" /> : <Video className="w-5 h-5 animate-pulse" />}
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-[11px] font-black uppercase px-2 py-0.5 rounded text-white ${escalationTriggered ? 'bg-amber-600' : 'bg-indigo-600'}`}>
-                    {escalationTriggered ? 'Auto-Fallback Escalation' : 'Paging ISL Relay'}
-                  </span>
-                  {!escalationTriggered && countdownSeconds !== null && (
-                    <span className="text-xs font-mono font-bold text-indigo-700 dark:text-indigo-300">
-                      Escalation in {countdownSeconds}s
-                    </span>
-                  )}
-                </div>
-                <h4 className="font-bold text-sm sm:text-base mt-0.5">
-                  {escalationTriggered
-                    ? 'No remote interpreter accepted within 60s. Auto-fallback recommended.'
-                    : 'Paging certified remote ISL interpreters. Standing by for connection...'}
-                </h4>
-                <p className="text-xs opacity-80">
-                  {escalationTriggered
-                    ? 'Recommend using the ISL Video Library (P2 AI Fallback) below to play pre-recorded sign clips on the patient tablet.'
-                    : 'The patient screen will automatically connect into 2-party HD video when an interpreter accepts.'}
-                </p>
-              </div>
+          <section className="bg-card border border-border rounded-[18px] flex flex-col min-h-[560px]">
+            {/* Patient header */}
+            <div className="px-5 py-4 border-b border-border flex flex-wrap items-center gap-3">
+              <h1 className="font-heading font-bold text-2xl">{patientDisplayName}</h1>
+              <span className="px-2.5 py-1 rounded-full bg-muted text-[13px] font-semibold text-secondary-foreground">
+                ISL user
+              </span>
+              {severeCount > 0 && (
+                <span className="px-2.5 py-1 rounded-full bg-emergency-surface text-[13px] font-semibold text-emergency-ink">
+                  {severeCount} severe event{severeCount === 1 ? '' : 's'}
+                </span>
+              )}
+              <span className="ml-auto text-xs text-muted-foreground font-mono">Session {sessionId.slice(0, 8)}</span>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={cancelInterpreterRequest}
-                className="text-xs font-bold flex items-center gap-1 bg-white dark:bg-slate-900 border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300"
-              >
-                <XCircle className="w-3.5 h-3.5" />
-                Cancel Request
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handlePageInterpreter}
-                className="text-xs font-bold flex items-center gap-1 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                Re-Page
-              </Button>
+            {/* Conversation / audit timeline */}
+            <div className="px-5 py-4 flex-1 overflow-y-auto max-h-[560px]">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-heading font-semibold text-base flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-teal-ink" />
+                  Conversation
+                </h2>
+                <span className="text-xs text-muted-foreground">
+                  {events.length} interaction{events.length === 1 ? '' : 's'} · live
+                </span>
+              </div>
+              <TranscriptFeed events={events} initialFilterSevere={false} onClearEvents={handleClearAuditTrail} />
             </div>
-          </div>
-        )}
 
-        {/* Status Metrics Bar (Dynamic Session Data Only) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-            <CardContent className="p-3 sm:p-4">
-              <span className="text-xs text-slate-500 font-medium">Remote Interpreter</span>
-              <div className="flex items-center gap-2 mt-1">
-                <span
-                  className={`w-2.5 h-2.5 rounded-full ${
-                    sessionStatus === 'interpreter_connected'
-                      ? 'bg-emerald-500'
-                      : sessionStatus === 'interpreter_requested'
-                      ? 'bg-amber-500'
-                      : 'bg-slate-400'
-                  }`}
+            {/* Composer */}
+            <div className="px-5 pt-4 pb-5 border-t border-border flex flex-col gap-3">
+              <div className="flex gap-2 flex-wrap">
+                {quickPhrases.map((chip) => (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    onClick={() => handleSendISLPhrase(chip.label, chip.key)}
+                    className="h-9 px-3.5 rounded-full border border-input bg-card text-sm font-semibold text-secondary-foreground hover:border-teal hover:text-teal-ink transition-colors"
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2.5 items-center">
+                <label htmlFor="isl-message" className="sr-only">
+                  Message to sign to the patient
+                </label>
+                <Input
+                  id="isl-message"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendISLPhrase()}
+                  placeholder="Type or dictate in English, Hindi or Hinglish…"
+                  className="h-[52px] text-base rounded-xl border-[1.5px] border-input flex-1 min-w-0"
                 />
-                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  {sessionStatus === 'interpreter_connected'
-                    ? 'Connected (2-Way Video Live)'
-                    : sessionStatus === 'interpreter_requested'
-                    ? 'Paging Standby Pool...'
-                    : 'Standby'}
-                </span>
+                {isSupported && (
+                  <Button
+                    type="button"
+                    variant={isListening ? 'destructive' : 'outline'}
+                    size="icon"
+                    onClick={handleToggleListening}
+                    className="h-[52px] w-[52px] rounded-xl shrink-0 border-[1.5px] border-input"
+                    aria-label={isListening ? 'Stop dictation' : 'Dictate'}
+                  >
+                    {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5 text-teal-ink" />}
+                  </Button>
+                )}
+                <Button
+                  onClick={() => handleSendISLPhrase()}
+                  disabled={isSearching || !inputText.trim()}
+                  className="h-[52px] px-5 bg-teal hover:bg-teal-light text-white rounded-xl shrink-0 font-semibold gap-2"
+                >
+                  {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Sign it
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-            <CardContent className="p-3 sm:p-4">
-              <span className="text-xs text-slate-500 font-medium">Critical Audit Events</span>
-              <div className="flex items-center gap-2 mt-1">
-                <ShieldAlert className="w-4 h-4 text-red-600 dark:text-red-400" />
-                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
-                  {events.filter(isSevereOrCriticalEvent).length} Severe Cases
+              {isListening && (
+                <span role="status" className="text-xs font-semibold text-emergency-ink flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emergency" />
+                  Listening…
                 </span>
-                <span className="text-xs text-slate-400 font-normal">
-                  ({events.length} total)
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+              )}
+            </div>
+          </section>
         </div>
 
-        {/* Two-Column Clinical Section: Left = Communication Console, Right = Live Transcript Feed */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-          {/* Left Column: Clinician Communication Console */}
-          <div className="space-y-4">
-            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
-              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-black text-[#084C5B] dark:text-teal-300 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-teal-600" />
-                    Send ISL Video Signs to Patient
-                  </CardTitle>
-                  <span className="text-xs text-slate-500">P2 Assisted Communication</span>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                    Dictate or type clinical message to match pre-recorded Indian Sign Language clip:
-                  </span>
-                  {isListening && (
-                    <span className="text-xs font-bold text-red-600 animate-pulse flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-red-600 animate-ping inline-block" />
-                      Listening to speech...
+        {/* ───── Right rail ───── */}
+        <aside className="flex flex-col gap-4">
+          {/* Remote interpreter */}
+          <section className="bg-card border border-border rounded-[18px] overflow-hidden">
+            <div className="px-[18px] py-4 bg-indigo-surface flex items-center gap-2.5">
+              <Video className="w-5 h-5 text-indigo" />
+              <h2 className="font-heading font-bold text-[17px] text-indigo-ink">Remote interpreter</h2>
+            </div>
+            <div className="p-[18px] flex flex-col gap-3.5">
+              {sessionStatus === 'interpreter_requested' ? (
+                <>
+                  <div role="status" className="flex items-baseline justify-between gap-2">
+                    <span className="text-[15px] font-semibold">
+                      {escalationTriggered ? 'No interpreter yet' : 'Paging standby pool…'}
+                    </span>
+                    {countdownSeconds !== null && !escalationTriggered && (
+                      <span className="font-heading font-bold text-[28px] text-indigo-ink tabular-nums">
+                        00:{String(countdownSeconds).padStart(2, '0')}
+                      </span>
+                    )}
+                  </div>
+                  {!escalationTriggered && countdownSeconds !== null && (
+                    <span className="h-1.5 rounded-full bg-indigo-surface overflow-hidden flex">
+                      <span
+                        className="bg-indigo transition-[width] duration-1000 ease-linear"
+                        style={{ width: `${((60 - countdownSeconds) / 60) * 100}%` }}
+                      />
                     </span>
                   )}
-                </div>
-
-                <div className="flex gap-2">
-                  {isSupported && (
-                    <Button
-                      type="button"
-                      variant={isListening ? 'destructive' : 'outline'}
-                      size="icon"
-                      onClick={handleToggleListening}
-                      className="h-12 w-12 rounded-xl shrink-0"
-                      aria-label={isListening ? 'Stop recording' : 'Start speech recognition'}
-                    >
-                      {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5 text-[#084C5B]" />}
-                    </Button>
-                  )}
-
-                  <Input
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendISLPhrase()}
-                    placeholder="Type or dictate: e.g. 'You are safe', 'Take this medicine'..."
-                    className="h-12 text-base rounded-xl border-slate-300 dark:border-slate-700 flex-1"
-                  />
-
-                  <Button
-                    onClick={() => handleSendISLPhrase()}
-                    disabled={isSearching || !inputText.trim()}
-                    className="h-12 px-5 bg-[#084C5B] hover:bg-[#0D748A] text-white rounded-xl shrink-0 font-bold"
-                  >
-                    {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  </Button>
-                </div>
-
-                {/* Quick Action Chips */}
-                <div>
-                  <span className="text-xs font-semibold text-slate-500 block mb-2">
-                    Quick Clinical Reassurances:
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { label: 'You are safe', key: 'you-are-safe' },
-                      { label: 'We are helping you', key: 'we-are-helping' },
-                      { label: 'Take this medicine', key: 'take-medicine' },
-                      { label: 'Stay still', key: 'stay-still' },
-                      { label: 'Relax / breathe', key: 'relax' },
-                      { label: 'Do you agree?', key: 'do-you-agree' },
-                      { label: 'We need to do a test', key: 'need-to-do-test' },
-                      { label: 'Do you have family here?', key: 'family-here' },
-                    ].map((chip) => (
-                      <button
-                        key={chip.key}
-                        type="button"
-                        onClick={() => handleSendISLPhrase(chip.label, chip.key)}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-teal-50 hover:text-[#084C5B] dark:hover:bg-teal-950/60 dark:hover:text-teal-200 border border-slate-200 dark:border-slate-700 transition-colors"
-                      >
-                        + {chip.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Video Call Tile (When LiveKit is Connected) */}
-            {sessionStatus === 'interpreter_connected' && (
-              <Card className="bg-indigo-950 text-white border-2 border-indigo-500 overflow-hidden shadow-xl">
-                <CardHeader className="p-4 bg-indigo-900 border-b border-indigo-800">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Video className="w-5 h-5 text-indigo-300 animate-pulse" />
-                      <CardTitle className="text-base font-bold">
-                        Live ISL Interpreter Relay Active
-                      </CardTitle>
+                  {escalationTriggered ? (
+                    <div className="flex gap-2.5 p-3 rounded-xl bg-warning-surface text-warning-ink text-sm">
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>Nobody accepted within 60s. Use the ISL phrases on the left while you re-page.</span>
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded bg-emerald-600 text-white font-bold uppercase">
-                      2-Party Video Live
+                  ) : (
+                    <span className="text-[13px] leading-normal text-muted-foreground">
+                      The tablet joins two-way video as soon as an interpreter accepts.
                     </span>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={handlePageInterpreter}
+                      className="h-11 rounded-[10px] border-input font-semibold gap-1.5"
+                    >
+                      <RefreshCw className="w-4 h-4" /> Re-page
+                    </Button>
+                    <Button
+                      onClick={cancelInterpreterRequest}
+                      className="h-11 rounded-[10px] bg-emergency-surface text-emergency-ink hover:bg-emergency-surface/80 font-semibold gap-1.5"
+                    >
+                      <XCircle className="w-4 h-4" /> Cancel
+                    </Button>
                   </div>
-                </CardHeader>
-                <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <p className="text-xs text-indigo-200">
-                    Patient and remote certified interpreter are connected in a private LiveKit session.
-                  </p>
+                </>
+              ) : sessionStatus === 'interpreter_connected' ? (
+                <>
+                  <span role="status" className="flex items-center gap-2 text-[15px] font-semibold">
+                    <span className="w-2.5 h-2.5 rounded-full bg-success" />
+                    Connected · two-way video live
+                  </span>
                   <Button
                     onClick={() => window.open(`/interpreter/call/${sessionId}`, '_blank')}
-                    className="bg-white text-indigo-950 hover:bg-indigo-100 font-bold shrink-0"
+                    className="h-11 rounded-[10px] bg-indigo hover:bg-indigo-hover text-white font-semibold"
                   >
-                    Open Call Stream
+                    Open call stream
                   </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Right Column: Live Audit Trail / Transcript Feed */}
-          <div className="space-y-4">
-            <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
-              <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-base font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-[#084C5B]" />
-                      Live Interaction Audit Trail
-                    </CardTitle>
-                    <span className="text-[10px] font-bold text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-950/60 border border-teal-300 dark:border-teal-800 px-1.5 py-0.5 rounded">
-                      Live Sync
-                    </span>
-                  </div>
-                  <span className="text-xs text-slate-400">
-                    {events.length} interaction{events.length === 1 ? '' : 's'}
+                </>
+              ) : (
+                <>
+                  <span className="flex items-center gap-2 text-[15px] font-semibold">
+                    <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
+                    Standby
                   </span>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4 flex-1 overflow-y-auto max-h-[600px]">
-                <TranscriptFeed
-                  events={events}
-                  initialFilterSevere={false}
-                  onClearEvents={handleClearAuditTrail}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                  <span className="text-[13px] leading-normal text-muted-foreground">
+                    Page a certified ISL interpreter into this bed by live video.
+                  </span>
+                  <Button
+                    onClick={handlePageInterpreter}
+                    disabled={isPagingInterpreter}
+                    className="h-12 rounded-[10px] bg-indigo hover:bg-indigo-hover text-white font-semibold gap-2"
+                  >
+                    <Video className="w-4 h-4" />
+                    {isPagingInterpreter ? 'Paging…' : 'Page interpreter'}
+                  </Button>
+                </>
+              )}
+            </div>
+          </section>
+
+          {/* Session summary */}
+          <section className="bg-card border border-border rounded-[18px] p-[18px] flex flex-col gap-3">
+            <h2 className="font-heading font-bold text-[17px]">This session</h2>
+            <dl className="grid grid-cols-2 gap-2.5">
+              <div className="p-3.5 rounded-[14px] bg-background flex flex-col-reverse gap-1">
+                <dt className="text-[13px] text-muted-foreground">Interactions</dt>
+                <dd className="font-heading font-bold text-[26px] tabular-nums">{events.length}</dd>
+              </div>
+              <div className="p-3.5 rounded-[14px] bg-background flex flex-col-reverse gap-1">
+                <dt className="text-[13px] text-muted-foreground flex items-center gap-1">
+                  <ShieldAlert className="w-3.5 h-3.5 text-emergency-ink" /> Severe
+                </dt>
+                <dd className="font-heading font-bold text-[26px] tabular-nums text-emergency-ink">{severeCount}</dd>
+              </div>
+            </dl>
+          </section>
+
+          {/* Pairing */}
+          <section className="bg-card border border-border rounded-[18px] p-[18px] flex flex-col gap-3">
+            <h2 className="font-heading font-bold text-[17px]">Bedside tablet</h2>
+            <span className="text-[13px] leading-normal text-muted-foreground">
+              Scan the QR or open the link on the patient&apos;s tablet.
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setPairingOpen(true)}
+                className="h-11 rounded-[10px] border-input font-semibold gap-1.5"
+              >
+                <QrCode className="w-4 h-4" /> Show QR
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleCopyTabletUrl}
+                className="h-11 rounded-[10px] border-input font-semibold gap-1.5"
+              >
+                {copiedUrl ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
+                {copiedUrl ? 'Copied' : 'Copy link'}
+              </Button>
+            </div>
+          </section>
+        </aside>
       </div>
 
       {/* Bedside Tablet QR Pairing Modal */}
       <Dialog open={pairingOpen} onOpenChange={setPairingOpen}>
-        <DialogContent className="max-w-md bg-white dark:bg-slate-900 border-2 border-[#084C5B] p-6 rounded-2xl">
+        <DialogContent className="max-w-md bg-card border border-border p-6 rounded-3xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <QrCode className="w-5 h-5 text-[#084C5B] dark:text-teal-400" />
+            <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-teal dark:text-teal-400" />
               Bedside Tablet Pairing
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
@@ -851,7 +771,7 @@ export default function DashboardPage() {
             </Button>
             <Button
               onClick={() => window.open(tabletUrl, '_blank')}
-              className="w-full bg-[#084C5B] hover:bg-[#0D748A] text-white text-xs h-9 font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
+              className="w-full bg-teal hover:bg-teal-light text-white text-xs h-9 font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               <span>Open Tablet</span>

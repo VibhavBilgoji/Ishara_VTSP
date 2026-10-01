@@ -189,7 +189,7 @@ export function DoctorPatientChat({
       <CardHeader className="py-3 px-4 bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-[#084C5B] dark:text-teal-300">
+            <div className="w-8 h-8 rounded-full bg-teal-500/15 border border-teal-500/30 flex items-center justify-center text-teal dark:text-teal-300">
               <MessageSquare className="w-4 h-4" />
             </div>
             <div>
@@ -278,7 +278,7 @@ export function DoctorPatientChat({
                     {isAlert ? (
                       <AlertCircle className="w-4 h-4" />
                     ) : (
-                      <span className="text-xs font-black">🤟</span>
+                      <span className="text-xs font-bold">🤟</span>
                     )}
                   </div>
 
@@ -365,7 +365,7 @@ export function DoctorPatientChat({
                     </div>
 
                     {/* Chat Bubble */}
-                    <div className="p-3 rounded-2xl rounded-tr-xs shadow-md bg-gradient-to-r from-[#084C5B] to-teal-700 text-white text-left">
+                    <div className="p-3 rounded-2xl rounded-tr-xs shadow-md bg-gradient-to-r from-teal to-teal-700 text-white text-left">
                       <p className="text-sm sm:text-base font-semibold leading-snug break-words">
                         {msg.text}
                       </p>
@@ -385,7 +385,7 @@ export function DoctorPatientChat({
                   </div>
 
                   {/* Doctor Avatar */}
-                  <div className="w-8 h-8 rounded-full bg-[#084C5B] border border-teal-400/40 text-teal-200 flex items-center justify-center shrink-0 shadow-xs mt-4">
+                  <div className="w-8 h-8 rounded-full bg-teal border border-teal-400/40 text-teal-200 flex items-center justify-center shrink-0 shadow-xs mt-4">
                     <Stethoscope className="w-4 h-4" />
                   </div>
                 </div>
@@ -424,7 +424,7 @@ export function DoctorPatientChat({
             type="submit"
             size="sm"
             disabled={isSearching || !chatInput.trim()}
-            className="h-9 px-3 bg-[#084C5B] hover:bg-[#0D748A] text-white rounded-xl text-xs font-bold flex items-center gap-1 shrink-0"
+            className="h-9 px-3 bg-teal hover:bg-teal-light text-white rounded-xl text-xs font-bold flex items-center gap-1 shrink-0"
           >
             {isSearching ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />

@@ -313,7 +313,7 @@ export default function HospitalRosterPage() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base font-black tracking-tight text-[#084C5B] dark:text-teal-300">
+                <h1 className="text-base font-bold tracking-tight text-teal dark:text-teal-300">
                   Apollo Multi-Specialty Hospital
                 </h1>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300">
@@ -329,7 +329,7 @@ export default function HospitalRosterPage() {
           <div className="flex items-center gap-2">
             <Button
               onClick={() => setIsAdmitOpen(true)}
-              className="bg-[#084C5B] hover:bg-[#0D748A] text-white font-bold text-xs h-9 px-3.5 rounded-xl flex items-center gap-1.5 shadow"
+              className="bg-teal hover:bg-teal-light text-white font-bold text-xs h-9 px-3.5 rounded-xl flex items-center gap-1.5 shadow"
             >
               <Plus className="w-4 h-4" />
               <span>+ Admit Bedside Patient</span>
@@ -362,14 +362,14 @@ export default function HospitalRosterPage() {
         {/* Hospital Inpatient Census Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-teal-50 dark:bg-teal-950 border border-teal-200 dark:border-teal-800 text-[#084C5B] dark:text-teal-300">
+            <div className="p-2.5 rounded-xl bg-teal-50 dark:bg-teal-950 border border-teal-200 dark:border-teal-800 text-teal dark:text-teal-300">
               <Bed className="w-5 h-5" />
             </div>
             <div>
               <span className="text-xs text-slate-500 dark:text-slate-400 font-medium block">
                 Hospital Inpatient Census
               </span>
-              <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+              <span className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                 {sessions.length} Active {sessions.length === 1 ? 'Bed' : 'Beds'} Under Clinical Care
               </span>
             </div>
@@ -392,8 +392,8 @@ export default function HospitalRosterPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-                <Stethoscope className="w-5 h-5 text-[#084C5B] dark:text-teal-400" />
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Stethoscope className="w-5 h-5 text-teal dark:text-teal-400" />
                 Bedside Patient Triage Roster
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -411,7 +411,7 @@ export default function HospitalRosterPage() {
               <p className="text-sm text-slate-500">No active beds admitted yet.</p>
               <Button
                 onClick={() => setIsAdmitOpen(true)}
-                className="mt-3 bg-[#084C5B] text-white text-xs font-bold h-9"
+                className="mt-3 bg-teal text-white text-xs font-bold h-9"
               >
                 + Admit First Patient
               </Button>
@@ -437,7 +437,7 @@ export default function HospitalRosterPage() {
                         <div>
                           <div className="flex items-center gap-2">
                             <span className={`w-2.5 h-2.5 rounded-full ${isEmergencyActive ? 'bg-red-600 animate-ping' : 'bg-emerald-500'}`} />
-                            <h3 className="font-black text-base text-slate-900 dark:text-white">
+                            <h3 className="font-bold text-base text-slate-900 dark:text-white">
                               {sess.patient_display_name}
                             </h3>
                           </div>
@@ -505,7 +505,7 @@ export default function HospitalRosterPage() {
                             className={`h-8 px-3 text-xs font-bold text-white flex items-center gap-1 shadow ${
                               isEmergencyActive
                                 ? 'bg-red-600 hover:bg-red-700 animate-pulse'
-                                : 'bg-[#084C5B] hover:bg-[#0D748A]'
+                                : 'bg-teal hover:bg-teal-light'
                             }`}
                           >
                             <span>Open Console</span>
@@ -547,8 +547,8 @@ export default function HospitalRosterPage() {
               <X className="w-4 h-4" />
             </button>
 
-            <Dialog.Title className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <Plus className="w-5 h-5 text-[#084C5B] dark:text-teal-400" />
+            <Dialog.Title className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Plus className="w-5 h-5 text-teal dark:text-teal-400" />
               Admit New Bedside Patient
             </Dialog.Title>
             <Dialog.Description className="text-xs text-slate-500 dark:text-slate-400">
@@ -581,7 +581,7 @@ export default function HospitalRosterPage() {
                       variant={priority === lvl ? 'default' : 'outline'}
                       onClick={() => setPriority(lvl)}
                       className={`h-9 text-xs font-bold rounded-xl ${
-                        priority === lvl ? 'bg-[#084C5B] text-white' : 'border-slate-300 dark:border-slate-700'
+                        priority === lvl ? 'bg-teal text-white' : 'border-slate-300 dark:border-slate-700'
                       }`}
                     >
                       {lvl === 'P0' ? '🚨 P0 Critical' : lvl === 'P1' ? '⚠️ P1 Urgent' : 'ℹ️ P2 Routine'}
@@ -602,7 +602,7 @@ export default function HospitalRosterPage() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="h-9 text-xs font-bold bg-[#084C5B] hover:bg-[#0D748A] text-white px-4 rounded-xl"
+                  className="h-9 text-xs font-bold bg-teal hover:bg-teal-light text-white px-4 rounded-xl"
                 >
                   {isSubmitting ? 'Admitting...' : 'Admit & Generate QR'}
                 </Button>
@@ -626,7 +626,7 @@ export default function HospitalRosterPage() {
               <X className="w-4 h-4" />
             </button>
 
-            <Dialog.Title className="text-lg font-black text-slate-900 dark:text-white flex items-center justify-center gap-2">
+            <Dialog.Title className="text-lg font-bold text-slate-900 dark:text-white flex items-center justify-center gap-2">
               <QrCode className="w-5 h-5 text-teal-600 dark:text-teal-400" />
               Pair Bedside Tablet
             </Dialog.Title>
@@ -695,7 +695,7 @@ export default function HospitalRosterPage() {
               {selectedSession && (
                 <Button
                   onClick={() => window.open(getTabletUrl(selectedSession.id), '_blank')}
-                  className="w-full text-xs h-9 font-bold bg-[#084C5B] hover:bg-[#0D748A] text-white rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
+                  className="w-full text-xs h-9 font-bold bg-teal hover:bg-teal-light text-white rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Open in New Tab</span>

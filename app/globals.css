@@ -5,20 +5,22 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Ishara Clinical Communication — Design Tokens
- * Source: DESIGN.md (Stitch-derived)
+ * Ishara Clinical Communication — Design Tokens (2026 redesign)
+ * Source of truth: the "Ishara UI Redesign" canvas.
  *
- * Primary: Deep Teal #084C5B
- * Secondary: Indigo #4F46E5 (interpreter portal)
- * Error: #DC2626 (emergency/triage)
- * Warning: #D97706
- * Success: #16A34A
+ * Channel colours carry meaning and never swap roles:
+ *   Teal    #0B5563  clinical care (staff actions, patient needs)
+ *   Indigo  #4F46E5  the live interpreter link
+ *   Red     #C8281E  P0 emergencies only
+ * Neutrals are a cool mineral grey (the Tailwind slate scale is remapped below
+ * so existing slate-* utilities follow the new palette).
  */
 
 @theme inline {
   /* Fonts */
-  --font-sans: var(--font-sans);
-  --font-heading: var(--font-heading);
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-display);
+  --font-hindi: var(--font-devanagari);
   --font-mono: var(--font-geist-mono);
 
   /* Semantic colors mapped to shadcn */
@@ -41,82 +43,154 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* Ishara custom colors */
-  --color-teal: #084C5B;
-  --color-teal-light: #0D748A;
-  --color-teal-surface: #E6F4F7;
+  /* Ishara channel colours */
+  --color-teal: var(--teal);
+  --color-teal-light: var(--teal-light);
+  --color-teal-surface: var(--teal-surface);
+  --color-teal-ink: var(--teal-ink);
   --color-indigo: #4F46E5;
-  --color-indigo-surface: #EEF2FF;
-  --color-emergency: #DC2626;
-  --color-emergency-surface: #FEF2F2;
-  --color-emergency-dark: #991B1B;
+  --color-indigo-hover: #4338CA;
+  --color-indigo-surface: var(--indigo-surface);
+  --color-indigo-ink: var(--indigo-ink);
+  --color-emergency: var(--emergency);
+  --color-emergency-surface: var(--emergency-surface);
+  --color-emergency-dark: var(--emergency-ink);
+  --color-emergency-ink: var(--emergency-ink);
   --color-warning: #D97706;
-  --color-warning-surface: #FFFBEB;
+  --color-warning-surface: var(--warning-surface);
+  --color-warning-ink: var(--warning-ink);
   --color-success: #16A34A;
-  --color-success-surface: #F0FDF4;
-  --color-slate-muted: #64748B;
-  --color-slate-body: #334155;
-  --color-slate-anchor: #0F172A;
+  --color-success-surface: var(--success-surface);
+  --color-success-ink: var(--success-ink);
+  --color-allergy-surface: var(--allergy-surface);
+  --color-allergy-ink: var(--allergy-ink);
+  --color-band: var(--band);
+  --color-band-foreground: var(--band-foreground);
+  --color-slate-muted: var(--muted-foreground);
+  --color-slate-body: var(--secondary-foreground);
+  --color-slate-anchor: var(--foreground);
+
+  /* Mineral neutrals: remap Tailwind slate so legacy utilities follow the new palette */
+  --color-slate-50: #F4F6F5;
+  --color-slate-100: #EEF1F1;
+  --color-slate-200: #DDE4E3;
+  --color-slate-300: #C9D3D2;
+  --color-slate-400: #93A6A9;
+  --color-slate-500: #5E6E72;
+  --color-slate-600: #4A5B5F;
+  --color-slate-700: #3D4F53;
+  --color-slate-800: #1B2C30;
+  --color-slate-900: #132124;
+  --color-slate-950: #0B1517;
+
+  /* Brand teal scale: Tailwind teal-* utilities follow the Ishara teal hue */
+  --color-teal-50: #EEF6F7;
+  --color-teal-100: #D5EAED;
+  --color-teal-200: #A9D5DC;
+  --color-teal-300: #7CC0CB;
+  --color-teal-400: #4BA5B4;
+  --color-teal-500: #1E8899;
+  --color-teal-600: #0E6A7B;
+  --color-teal-700: #0B5563;
+  --color-teal-800: #0A4550;
+  --color-teal-900: #08363F;
+  --color-teal-950: #052429;
 
   /* Radii */
   --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
   --radius-2xl: 1.5rem;
   --radius-full: 9999px;
 }
 
 /* ===== Light Mode (default) ===== */
 :root {
-  --background: #F8FAFC;
-  --foreground: #0F172A;
+  --background: #F4F6F5;
+  --foreground: #0D1B1E;
   --card: #FFFFFF;
-  --card-foreground: #0F172A;
+  --card-foreground: #0D1B1E;
   --popover: #FFFFFF;
-  --popover-foreground: #0F172A;
-  --primary: #084C5B;
+  --popover-foreground: #0D1B1E;
+  --primary: #0B5563;
   --primary-foreground: #FFFFFF;
-  --secondary: #F1F5F9;
-  --secondary-foreground: #334155;
-  --muted: #F1F5F9;
-  --muted-foreground: #64748B;
-  --accent: #E6F4F7;
-  --accent-foreground: #084C5B;
-  --destructive: #DC2626;
-  --border: #E2E8F0;
-  --input: #E2E8F0;
-  --ring: #084C5B;
-  --radius: 0.5rem;
+  --secondary: #EEF1F1;
+  --secondary-foreground: #3D4F53;
+  --muted: #EEF1F1;
+  --muted-foreground: #5E6E72;
+  --accent: #E6F2F3;
+  --accent-foreground: #0B5563;
+  --destructive: #C8281E;
+  --border: #DDE4E3;
+  --input: #C9D3D2;
+  --ring: #0B5563;
+  --radius: 0.625rem;
   --text-muted: var(--muted-foreground);
+
+  --teal: #0B5563;
+  --teal-light: #0E6A7B;
+  --teal-surface: #E6F2F3;
+  --teal-ink: #0B5563;
+  --indigo-surface: #EEF0FF;
+  --indigo-ink: #3730A3;
+  --emergency: #C8281E;
+  --emergency-surface: #FDECEA;
+  --emergency-ink: #8F1C14;
+  --warning-surface: #FFF4E0;
+  --warning-ink: #7A3E06;
+  --success-surface: #EAF6EE;
+  --success-ink: #14532D;
+  --allergy-surface: #F5EEFF;
+  --allergy-ink: #5B21A6;
+  --band: #0D1B1E;
+  --band-foreground: #FFFFFF;
 }
 
-/* ===== Dark Mode (staff/interpreter portals) ===== */
+/* ===== Dark Mode (night wards, staff stations) ===== */
 .dark {
-  --background: #0F172A;
-  --foreground: #F8FAFC;
-  --card: #1E293B;
-  --card-foreground: #F8FAFC;
-  --popover: #1E293B;
-  --popover-foreground: #F8FAFC;
-  --primary: #0D748A;
+  --background: #0B1517;
+  --foreground: #ECF2F2;
+  --card: #132124;
+  --card-foreground: #ECF2F2;
+  --popover: #132124;
+  --popover-foreground: #ECF2F2;
+  --primary: #0F7487;
   --primary-foreground: #FFFFFF;
-  --secondary: #334155;
-  --secondary-foreground: #F8FAFC;
-  --muted: #334155;
-  --muted-foreground: #94A3B8;
-  --accent: #1E293B;
-  --accent-foreground: #E6F4F7;
-  --destructive: #EF4444;
-  --border: #1E293B;
-  --input: #334155;
-  --ring: #0D748A;
+  --secondary: #1B2C30;
+  --secondary-foreground: #D4E0E1;
+  --muted: #1B2C30;
+  --muted-foreground: #93A6A9;
+  --accent: #123B42;
+  --accent-foreground: #BFE6EC;
+  --destructive: #EF5A4F;
+  --border: #22363A;
+  --input: #2C4246;
+  --ring: #5FB8C7;
   --text-muted: var(--muted-foreground);
+
+  --teal: #0F7487;
+  --teal-light: #138A9F;
+  --teal-surface: #123B42;
+  --teal-ink: #9FD8E2;
+  --indigo-surface: #1E1D48;
+  --indigo-ink: #C7CBFB;
+  --emergency: #DC3B30;
+  --emergency-surface: #3A1513;
+  --emergency-ink: #FFB4AC;
+  --warning-surface: #3A2A0E;
+  --warning-ink: #FCD38D;
+  --success-surface: #10301C;
+  --success-ink: #A7F3C0;
+  --allergy-surface: #2B1A45;
+  --allergy-ink: #DCC6FF;
+  --band: #050B0C;
+  --band-foreground: #ECF2F2;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-foreground;
@@ -127,6 +201,15 @@
   /* Heading typography */
   h1, h2, h3 {
     font-family: var(--font-heading), var(--font-sans), system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+  /* Devanagari: Noto Sans Devanagari instead of the device fallback */
+  [lang="hi"] {
+    font-family: var(--font-hindi), var(--font-sans), system-ui, sans-serif;
+  }
+  :focus-visible {
+    outline-width: 3px;
+    outline-offset: 2px;
   }
 }
 
@@ -141,10 +224,10 @@
 
 /* ===== Patient tablet: high-contrast overrides ===== */
 .patient-view {
-  --foreground: #0F172A;
-  --background: #FFFFFF;
-  --primary: #084C5B;
-  --destructive: #DC2626;
+  --foreground: #0D1B1E;
+  --background: #F4F6F5;
+  --primary: #0B5563;
+  --destructive: #C8281E;
 }
 
 /* ===== Night Light Mode: Blue-light cut for clinical night shifts ===== */

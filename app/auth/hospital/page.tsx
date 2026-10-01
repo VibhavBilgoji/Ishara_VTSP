@@ -61,10 +61,10 @@ export default function HospitalAuthPage() {
 
         <Card className="border-2 border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
           <CardHeader className="bg-teal-50/50 dark:bg-teal-950/20 border-b border-slate-100 dark:border-slate-800 pb-4">
-            <div className="w-10 h-10 rounded-xl bg-[#084C5B] text-white flex items-center justify-center mb-2 shadow">
+            <div className="w-10 h-10 rounded-xl bg-teal text-white flex items-center justify-center mb-2 shadow">
               <Stethoscope className="w-5 h-5" />
             </div>
-            <CardTitle className="text-xl font-black text-slate-900 dark:text-white">
+            <CardTitle className="text-xl font-bold text-slate-900 dark:text-white">
               Hospital Staff Portal
             </CardTitle>
             <p className="text-xs text-slate-500">
@@ -111,7 +111,7 @@ export default function HospitalAuthPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 rounded-xl bg-[#084C5B] hover:bg-[#0D748A] text-white font-bold"
+                className="w-full h-11 rounded-xl bg-teal hover:bg-teal-light text-white font-bold"
               >
                 {loading ? 'Authenticating...' : 'Sign In to Hospital Station'}
               </Button>

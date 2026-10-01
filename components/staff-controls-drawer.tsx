@@ -148,7 +148,7 @@ export function StaffControlsDrawer({
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-40 bg-[#084C5B] text-white px-4 py-3 rounded-full shadow-2xl border-2 border-teal-300/40 flex items-center gap-2 hover:bg-[#0D748A] active:scale-95 transition-all text-sm font-bold cursor-pointer">
+      <SheetTrigger className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-40 bg-teal text-white px-4 py-3 rounded-full shadow-2xl border-2 border-teal-300/40 flex items-center gap-2 hover:bg-teal-light active:scale-95 transition-all text-sm font-bold cursor-pointer">
         <Stethoscope className="w-5 h-5 text-teal-200" />
         <span>Doctor / Staff Bedside Drawer</span>
         <ChevronUp className="w-4 h-4" />
@@ -156,13 +156,13 @@ export function StaffControlsDrawer({
 
       <SheetContent
         side="bottom"
-        className="max-h-[85vh] sm:max-h-[75vh] bg-white dark:bg-slate-900 rounded-t-3xl border-t-4 border-[#084C5B] p-4 sm:p-6 overflow-y-auto"
+        className="max-h-[85vh] sm:max-h-[75vh] bg-white dark:bg-slate-900 rounded-t-3xl border-t-4 border-teal p-4 sm:p-6 overflow-y-auto"
       >
         <SheetHeader className="text-left mb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Stethoscope className="w-6 h-6 text-[#084C5B] dark:text-teal-400" />
-              <SheetTitle className="text-xl font-black text-slate-900 dark:text-white">
+              <Stethoscope className="w-6 h-6 text-teal dark:text-teal-400" />
+              <SheetTitle className="text-xl font-bold text-slate-900 dark:text-white">
                 Bedside Clinician Controls
               </SheetTitle>
             </div>
@@ -197,7 +197,7 @@ export function StaffControlsDrawer({
                 shrink-0 font-bold px-4 py-2.5 rounded-lg flex items-center gap-2 shadow-md
                 ${isInterpreterConnected
                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                  : 'bg-[#4F46E5] hover:bg-[#4338CA] text-white'
+                  : 'bg-indigo hover:bg-indigo-hover text-white'
                 }
               `}
             >
@@ -245,7 +245,7 @@ export function StaffControlsDrawer({
                   className="h-12 w-12 rounded-xl shrink-0"
                   aria-label={isListening ? 'Stop recording' : 'Start voice dictation'}
                 >
-                  {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5 text-[#084C5B]" />}
+                  {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5 text-teal" />}
                 </Button>
               )}
 
@@ -260,7 +260,7 @@ export function StaffControlsDrawer({
               <Button
                 onClick={() => handleSendPhrase()}
                 disabled={isSearching || !inputText.trim()}
-                className="h-12 px-5 bg-[#084C5B] hover:bg-[#0D748A] text-white rounded-xl shrink-0 font-bold"
+                className="h-12 px-5 bg-teal hover:bg-teal-light text-white rounded-xl shrink-0 font-bold"
               >
                 {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
@@ -277,7 +277,7 @@ export function StaffControlsDrawer({
                     key={phrase.key}
                     type="button"
                     onClick={() => handleSendPhrase(phrase.label, phrase.key)}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 hover:bg-teal-50 hover:text-[#084C5B] hover:border-teal-300 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
+                    className="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 hover:bg-teal-50 hover:text-teal hover:border-teal-300 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-slate-700 dark:text-slate-200 transition-colors"
                   >
                     + {phrase.label}
                   </button>

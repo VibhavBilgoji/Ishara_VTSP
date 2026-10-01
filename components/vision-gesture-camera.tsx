@@ -340,7 +340,7 @@ export function VisionGestureCamera({
               type="button"
               onClick={startCamera}
               disabled={!modelReady}
-              className="bg-[#084C5B] hover:bg-[#0D748A] text-white font-bold text-xs h-9 px-5 rounded-xl shadow-md flex items-center gap-2 transition-all disabled:opacity-50"
+              className="bg-teal hover:bg-teal-light text-white font-bold text-xs h-9 px-5 rounded-xl shadow-md flex items-center gap-2 transition-all disabled:opacity-50"
             >
               <svg className="w-4 h-4 text-teal-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -382,7 +382,7 @@ export function VisionGestureCamera({
                   <span className="text-[9px] uppercase font-bold text-teal-300 block leading-tight tracking-wider">
                     Sign Detected
                   </span>
-                  <span className="text-xs font-black text-white">{lastGesture.displayText}</span>
+                  <span className="text-xs font-bold text-white">{lastGesture.displayText}</span>
                 </div>
               </div>
             ) : (
@@ -421,7 +421,7 @@ export function VisionGestureCamera({
         {/* Flash banner when gesture is confirmed */}
         {flashLabel && (
           <div className="absolute bottom-4 left-3 right-3 flex justify-center pointer-events-none z-20 animate-in slide-in-from-bottom-2">
-            <div className="bg-emerald-600/95 text-white text-xs font-black px-4 py-2 rounded-xl shadow-xl flex items-center gap-2 border border-emerald-300/40">
+            <div className="bg-emerald-600/95 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xl flex items-center gap-2 border border-emerald-300/40">
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>

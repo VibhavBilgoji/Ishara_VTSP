@@ -219,6 +219,8 @@ export function PictogramCard({
 }: PictogramCardProps) {
   const IconComponent = ICON_MAP[pictogram.icon] || HelpCircle
 
+  const isUrgent = pictogram.priority === 'P0'
+
   return (
     <button
       type="button"
@@ -226,39 +228,34 @@ export function PictogramCard({
       disabled={disabled}
       aria-label={`${pictogram.label} - ${pictogram.description}`}
       className={`
-        group relative flex flex-col items-center justify-between p-4 rounded-xl border-2
+        group relative flex flex-col justify-between gap-3 p-4 rounded-[18px] text-left
+        ${isUrgent ? 'border-[3px]' : 'border-2'}
         transition-all duration-200 ease-out select-none cursor-pointer
-        min-h-[110px] sm:min-h-[130px] w-full text-center
-        focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#084C5B] dark:focus-visible:ring-teal-400
+        min-h-[120px] sm:min-h-[136px] w-full
+        focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring
         active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none
-        shadow-xs hover:shadow-lg hover:-translate-y-0.5 dark:hover:shadow-black/50
+        hover:-translate-y-0.5
         ${pictogram.color}
-        ${selected ? 'ring-4 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 ring-[#084C5B] dark:ring-teal-400 scale-[1.02]' : ''}
+        ${selected ? 'ring-4 ring-offset-2 ring-offset-background ring-ring' : ''}
       `}
     >
-      {/* Priority Pill */}
-      {pictogram.priority === 'P0' && (
-        <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider bg-red-600 text-white uppercase shadow-xs">
-          Urgent
-        </span>
-      )}
-
-      {/* Icon */}
-      <div className="flex-1 flex items-center justify-center my-1 transition-transform duration-200 group-hover:scale-105">
-        <IconComponent className="w-8 h-8 sm:w-10 sm:h-10 stroke-[2.2]" />
-      </div>
-
-      {/* Label and Hindi annotation */}
-      <div className="w-full">
-        <div className="font-bold text-base sm:text-lg leading-snug line-clamp-1">
-          {pictogram.label}
-        </div>
-        {pictogram.hindiText && (
-          <div className="text-xs sm:text-sm font-medium opacity-80 line-clamp-1 mt-0.5">
-            {pictogram.hindiText}
-          </div>
+      <span className="w-full flex items-start justify-between gap-2">
+        <IconComponent className="w-9 h-9 sm:w-10 sm:h-10 stroke-[2.2] shrink-0" />
+        {isUrgent && (
+          <span className="px-1.5 py-0.5 rounded-[4px] text-[11px] font-bold tracking-[0.06em] bg-emergency text-white">
+            URGENT
+          </span>
         )}
-      </div>
+      </span>
+
+      <span className="w-full flex flex-col">
+        <span className="font-bold text-lg sm:text-[21px] leading-tight line-clamp-2">{pictogram.label}</span>
+        {pictogram.hindiText && (
+          <span lang="hi" className="text-sm sm:text-[15px] font-medium opacity-85 line-clamp-1 mt-0.5">
+            {pictogram.hindiText}
+          </span>
+        )}
+      </span>
     </button>
   )
 }
