@@ -7,7 +7,7 @@ import { isStaffRole } from '@/lib/roles'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Stethoscope, Video, BedDouble, ArrowRight, Loader2, HeartPulse, CheckCircle2 } from 'lucide-react'
+import { Stethoscope, Video, BedDouble, ArrowRight, Loader2, HeartPulse, CheckCircle2, ClipboardList } from 'lucide-react'
 
 interface ActiveBedItem {
   id: string
@@ -164,6 +164,22 @@ export default function LoginPage() {
             </span>
           </span>
           <ArrowRight className="w-5 h-5 text-indigo-ink group-hover:translate-x-1 transition-transform" />
+        </Link>
+
+        <Link
+          href="/nurse"
+          className="group flex items-center gap-5 p-6 rounded-[20px] bg-card border border-border hover:border-teal hover:-translate-y-0.5 transition-all"
+        >
+          <span className="w-14 h-14 shrink-0 rounded-2xl bg-teal-surface text-teal-ink flex items-center justify-center">
+            <ClipboardList className="w-6 h-6" />
+          </span>
+          <span className="flex-1 space-y-1">
+            <span className="block font-heading font-bold text-xl">Nurse station</span>
+            <span className="block text-[15px] leading-normal text-muted-foreground">
+              Nurses: every patient request from every bed, in one live queue.
+            </span>
+          </span>
+          <ArrowRight className="w-5 h-5 text-teal-ink group-hover:translate-x-1 transition-transform" />
         </Link>
 
         <div className="flex flex-col gap-4 p-6 rounded-[20px] bg-card border border-border">

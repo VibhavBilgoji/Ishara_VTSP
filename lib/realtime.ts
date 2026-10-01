@@ -19,6 +19,13 @@ export const INTERPRETER_REQUESTS_CHANNEL = 'interpreter-requests'
 export const HOSPITAL_ALERTS_CHANNEL = 'hospital-alerts'
 export const GLOBAL_HOSPITAL_ALERTS_BC = 'ishara_global_hospital_alerts'
 
+/**
+ * Hospital-wide "a patient asked for something" ping for the nurse station.
+ * Carries no patient detail: receivers re-fetch from the hospital-scoped API.
+ */
+export const HOSPITAL_REQUESTS_CHANNEL = 'hospital-requests'
+export const GLOBAL_HOSPITAL_REQUESTS_BC = 'ishara_global_hospital_requests'
+
 /** Presence channel for interpreter online/offline tracking */
 export const INTERPRETER_PRESENCE_CHANNEL = 'interpreter-presence'
 
@@ -31,6 +38,8 @@ export const REALTIME_EVENTS = {
   GESTURE_TEXT: 'gesture_text',
   NEW_REQUEST: 'new_request',
   CANCEL_REQUEST: 'cancel_request',
+  PATIENT_REQUEST: 'patient_request',
+  REQUEST_STATUS: 'request_status',
 } as const
 
 /** Canonical fallback UUID for demo session in PostgreSQL */

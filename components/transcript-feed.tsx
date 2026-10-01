@@ -315,6 +315,29 @@ export function TranscriptFeed({
                 </div>
               )
 
+            case 'note':
+              // Nurse-station responses to a patient request
+              if (payload.kind === 'request_status') {
+                return (
+                  <div key={evt.id} className="flex items-center gap-3 text-[13px] text-muted-foreground">
+                    <span className="h-px flex-1 bg-border" />
+                    <span className="font-semibold text-teal-ink">
+                      Nurse station: {payload.status === 'done' ? 'done' : 'on the way'} · {payload.label}
+                    </span>
+                    <span className="tabular-nums">{time}</span>
+                    <span className="h-px flex-1 bg-border" />
+                  </div>
+                )
+              }
+              return (
+                <div key={evt.id} className="flex items-center gap-3 text-[13px] text-muted-foreground">
+                  <span className="h-px flex-1 bg-border" />
+                  <span>{payload.message || payload.label || 'Note'}</span>
+                  <span className="tabular-nums">{time}</span>
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+              )
+
             default:
               return (
                 <div key={evt.id} className="flex gap-3 max-w-[560px]">

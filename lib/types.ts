@@ -42,6 +42,16 @@ export interface Profile {
   created_at: string
 }
 
+/** A nurse-station response to a patient request, sent to the bedside tablet. */
+export interface RequestStatusPayload {
+  type: 'request_status'
+  sessionId: string
+  requestEventId: string
+  status: 'acknowledged' | 'done'
+  label: string
+  timestamp: string
+}
+
 export interface Session {
   id: string
   hospital_id: string
@@ -95,6 +105,8 @@ export interface PictogramAlertPayload {
   category: string
   priority?: ClipPriority
   isUrgent?: boolean
+  /** Extra detail chosen on the tablet, e.g. the pain-scale level */
+  extraNote?: string
   timestamp: string
 }
 

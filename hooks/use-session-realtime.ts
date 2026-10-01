@@ -9,6 +9,7 @@ import {
   HOSPITAL_ALERTS_CHANNEL,
   GLOBAL_HOSPITAL_ALERTS_BC,
 } from '@/lib/realtime'
+import { notifyNurseStation } from '@/lib/nurse-realtime'
 import type {
   PictogramAlertPayload,
   PlayClipPayload,
@@ -17,6 +18,7 @@ import type {
   SessionEvent,
   GestureTextPayload,
   ClipPriority,
+  RequestStatusPayload,
 } from '@/lib/types'
 
 // Re-export so consumers can import GestureTextPayload from this hook
@@ -28,6 +30,7 @@ interface UseSessionRealtimeOptions {
   onClipReceived?: (clip: PlayClipPayload) => void
   onStatusReceived?: (status: StatusChangePayload) => void
   onGestureReceived?: (payload: GestureTextPayload) => void
+  onRequestStatus?: (payload: RequestStatusPayload) => void
 }
 
 export function useSessionRealtime({
@@ -36,6 +39,7 @@ export function useSessionRealtime({
   onClipReceived,
   onStatusReceived,
   onGestureReceived,
+  onRequestStatus,
 }: UseSessionRealtimeOptions) {
   const [activeAlert, setActiveAlert] = useState<PictogramAlertPayload | null>(null)
   const [activeClip, setActiveClip] = useState<PlayClipPayload | null>(null)
@@ -103,6 +107,8 @@ export function useSessionRealtime({
           },
           ...prev,
         ])
+      } else if (type === REALTIME_EVENTS.REQUEST_STATUS) {
+        onRequestStatus?.(payload as RequestStatusPayload)
       } else if (type === REALTIME_EVENTS.GESTURE_TEXT) {
         const gestureData = payload as GestureTextPayload
         onGestureReceived?.(gestureData)
@@ -120,7 +126,7 @@ export function useSessionRealtime({
         ])
       }
     },
-    [sessionId, onAlertReceived, onClipReceived, onStatusReceived, onGestureReceived]
+    [sessionId, onAlertReceived, onClipReceived, onStatusReceived, onGestureReceived, onRequestStatus]
   )
 
   useEffect(() => {
@@ -169,6 +175,9 @@ export function useSessionRealtime({
           .on('broadcast', { event: REALTIME_EVENTS.GESTURE_TEXT }, (response: any) => {
             handleIncomingEvent(REALTIME_EVENTS.GESTURE_TEXT, response.payload)
           })
+          .on('broadcast', { event: REALTIME_EVENTS.REQUEST_STATUS }, (response: any) => {
+            handleIncomingEvent(REALTIME_EVENTS.REQUEST_STATUS, response.payload)
+          })
           .subscribe((status: string) => {
             setIsConnected(status === 'SUBSCRIBED')
           })
@@ -199,7 +208,8 @@ export function useSessionRealtime({
       category = 'Emergency',
       priority: ClipPriority = 'P1',
       isUrgent = false,
-      patientName?: string
+      patientName?: string,
+      extraNote?: string
     ) => {
       const payload: PictogramAlertPayload = {
         type: 'pictogram_alert',
@@ -210,6 +220,7 @@ export function useSessionRealtime({
         category,
         priority,
         isUrgent,
+        ...(extraNote ? { extraNote } : {}),
         timestamp: new Date().toISOString(),
       }
 
@@ -289,7 +300,9 @@ export function useSessionRealtime({
           eventType: 'pictogram',
           payload,
         }),
-      }).catch(() => { })
+      })
+        .then(() => notifyNurseStation(sessionId))
+        .catch(() => { })
     },
     [sessionId]
   )
@@ -547,7 +560,9 @@ export function useSessionRealtime({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ eventType: 'gesture_text', payload }),
-      }).catch(() => { })
+      })
+        .then(() => notifyNurseStation(sessionId))
+        .catch(() => { })
     },
     [sessionId]
   )

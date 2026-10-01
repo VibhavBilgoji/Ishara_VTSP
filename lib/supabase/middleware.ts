@@ -10,7 +10,10 @@ export async function updateSession(request: NextRequest) {
   const isApi = path.startsWith('/api/')
   const denied = () => isApi
     ? NextResponse.json({ error: 'Sign in or pair this tablet' }, { status: 401 })
-    : NextResponse.redirect(new URL(path.startsWith('/interpreter') ? '/auth/interpreter' : '/login', request.url))
+    : NextResponse.redirect(new URL(
+        path.startsWith('/interpreter') ? '/auth/interpreter' : path.startsWith('/nurse') ? '/auth/hospital?next=/nurse' : '/login',
+        request.url,
+      ))
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return denied()
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -51,7 +54,7 @@ export async function updateSession(request: NextRequest) {
   const { data: profile } = await supabase.from('profiles').select('role, hospital_id').eq('id', user.id).single()
   const staff = profile && isStaffRole(profile.role) && Boolean(profile.hospital_id)
   const interpreter = profile?.role === 'interpreter'
-  if ((path.startsWith('/dashboard') && !staff) || (path.startsWith('/interpreter') && !interpreter)) {
+  if (((path.startsWith('/dashboard') || path.startsWith('/nurse')) && !staff) || (path.startsWith('/interpreter') && !interpreter)) {
     const response = NextResponse.redirect(new URL(interpreter ? '/interpreter/dashboard' : staff ? '/dashboard' : '/login', request.url))
     for (const cookie of supabaseResponse.cookies.getAll()) response.cookies.set(cookie)
     return response

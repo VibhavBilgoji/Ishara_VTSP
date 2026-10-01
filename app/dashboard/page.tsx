@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   Stethoscope,
@@ -9,6 +10,7 @@ import {
   QrCode,
   ExternalLink,
   LogOut,
+  ClipboardList,
   RefreshCw,
   Clock,
   Bed,
@@ -261,6 +263,13 @@ export default function HospitalRosterPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              href="/nurse"
+              className="h-9 px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-bold flex items-center gap-1.5 hover:border-teal"
+            >
+              <ClipboardList className="w-4 h-4" />
+              <span>Nurse Station</span>
+            </Link>
             <Button
               onClick={() => setIsAdmitOpen(true)}
               className="bg-teal hover:bg-teal-light text-white font-bold text-xs h-9 px-3.5 rounded-xl flex items-center gap-1.5 shadow"

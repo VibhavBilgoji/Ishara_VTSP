@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import { PictogramGrid } from '@/components/pictogram-grid'
@@ -10,6 +10,7 @@ import { VisionGestureCamera } from '@/components/vision-gesture-camera'
 import { useSessionRealtime } from '@/hooks/use-session-realtime'
 import { getClipUrl } from '@/lib/isl-clips'
 import type { DetailedPictogram } from '@/lib/pictograms'
+import type { RequestStatusPayload } from '@/lib/types'
 import {
   CheckCircle2,
   Video,
@@ -19,6 +20,7 @@ import {
   PhoneOff,
   Hand,
   HeartHandshake,
+  Footprints,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
@@ -32,6 +34,13 @@ export default function PatientPage() {
   const [lastAlertText, setLastAlertText] = useState<string | null>(null)
   const [lastAlertHindi, setLastAlertHindi] = useState<string | null>(null)
   const [showingConfirmation, setShowingConfirmation] = useState(false)
+  const [lastAlertUrgent, setLastAlertUrgent] = useState(false)
+  const [nurseUpdate, setNurseUpdate] = useState<RequestStatusPayload | null>(null)
+  // Stable so the realtime subscription is not rebuilt on every render
+  const handleRequestStatus = useCallback((update: RequestStatusPayload) => {
+    setNurseUpdate(update)
+    setShowingConfirmation(false)
+  }, [])
   const [bedName, setBedName] = useState('Bedside Kiosk (ISL)')
   const [hospitalName, setHospitalName] = useState('Hospital')
   const [fallbackCountdown, setFallbackCountdown] = useState<number>(30)
@@ -59,6 +68,7 @@ export default function PatientPage() {
     cancelInterpreterRequest,
   } = useSessionRealtime({
     sessionId,
+    onRequestStatus: handleRequestStatus,
   })
 
   // Auto-fallback countdown when live interpreter is paged (falls back to P3 AI Sign Interpreter if unreached)
@@ -99,11 +109,14 @@ export default function PatientPage() {
       pictogram.category,
       pictogram.priority,
       isUrgent,
-      bedName
+      bedName,
+      extraNote
     )
 
     // 2. Show clear confirmation banner for Deaf patient
     setLastAlertText(fullNote)
+    setLastAlertUrgent(isUrgent)
+    setNurseUpdate(null)
     setLastAlertHindi(
       pictogram.hindiText || (isUrgent ? 'डॉक्टर को तुरंत सूचित कर दिया गया है' : 'नर्सिंग स्टेशन को सूचित किया गया')
     )
@@ -343,6 +356,39 @@ export default function PatientPage() {
 
         {/* ───── Right: confirmations + pictograms ───── */}
         <div className="flex flex-col gap-4 min-w-0">
+          {nurseUpdate && (
+            <div
+              role="status"
+              className={`rounded-2xl border-2 px-4 py-3.5 flex items-center gap-3 animate-in slide-in-from-top-2 duration-200 ${
+                nurseUpdate.status === 'acknowledged'
+                  ? 'bg-indigo-surface border-indigo text-indigo-ink'
+                  : 'bg-success-surface border-success/50 text-success-ink'
+              }`}
+            >
+              {nurseUpdate.status === 'acknowledged' ? (
+                <Footprints className="w-7 h-7 shrink-0" />
+              ) : (
+                <CheckCircle2 className="w-7 h-7 shrink-0" />
+              )}
+              <span className="flex-1 flex flex-col">
+                <span className="text-lg font-bold">
+                  {nurseUpdate.status === 'acknowledged'
+                    ? `A nurse is on the way: ${nurseUpdate.label}`
+                    : `Done: ${nurseUpdate.label}`}
+                </span>
+                <span lang="hi" className="text-[15px] font-medium opacity-90">
+                  {nurseUpdate.status === 'acknowledged' ? 'नर्स आपके पास आ रही हैं' : 'आपका अनुरोध पूरा हुआ'}
+                </span>
+              </span>
+              <Button
+                variant="ghost"
+                onClick={() => setNurseUpdate(null)}
+                className="h-12 px-4 rounded-xl font-semibold hover:bg-black/5"
+              >
+                OK
+              </Button>
+            </div>
+          )}
           {showingConfirmation && lastAlertText && (
             <div
               role="status"
@@ -350,7 +396,7 @@ export default function PatientPage() {
             >
               <CheckCircle2 className="w-6 h-6 shrink-0" />
               <span className="flex-1 text-[17px] font-semibold">
-                Doctor has been told: {lastAlertText}
+                {lastAlertUrgent ? 'Doctor has been told' : 'Nurse station has been told'}: {lastAlertText}
                 {lastAlertHindi && <span lang="hi" className="font-medium"> • {lastAlertHindi}</span>}
               </span>
               <Button

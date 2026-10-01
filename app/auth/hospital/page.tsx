@@ -41,7 +41,9 @@ export default function HospitalAuthPage() {
           throw new Error('This account is not authorized for the hospital portal.')
         }
         toast.success('Authenticated as ' + (data.user.user_metadata?.full_name || email))
-        router.push('/dashboard')
+        const next = new URLSearchParams(window.location.search).get('next')
+        // Only same-site absolute paths, never protocol-relative URLs
+        router.push(next && next.startsWith('/') && !next.startsWith('//') ? next : '/dashboard')
       }
     } catch (err: any) {
       toast.error(err.message || 'Authentication failed. Please verify credentials.')
