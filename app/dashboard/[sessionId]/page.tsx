@@ -12,6 +12,7 @@ import { useSessionRealtime } from '@/hooks/use-session-realtime'
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
 import { searchClips, getClipUrl, hasNegationOrContradiction } from '@/lib/isl-clips'
 import type { ISLClipMatch } from '@/lib/types'
+import { LiveKitVideoCall } from '@/components/livekit-video-call'
 import {
   ArrowLeft,
   Video,
@@ -238,6 +239,7 @@ export default function DashboardPage() {
   const [isPagingInterpreter, setIsPagingInterpreter] = useState(false)
   const [patientDisplayName, setPatientDisplayName] = useState('Bedside patient')
   const [pairingOpen, setPairingOpen] = useState(false)
+  const [isStreamOpen, setIsStreamOpen] = useState(false)
   const [hospitalName, setHospitalName] = useState('Hospital')
   const [hiddenEventIds, setHiddenEventIds] = useState<Set<string>>(new Set())
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null)
@@ -753,14 +755,25 @@ export default function DashboardPage() {
                     <span className="w-2.5 h-2.5 rounded-full bg-success" />
                     Connected · two-way video live
                   </span>
-                  <Button
-                    onClick={() => window.open(`/interpreter/call/${sessionId}?role=spectator`, '_blank')}
-                    className="h-11 rounded-[10px] bg-indigo hover:bg-indigo-hover text-white font-semibold flex items-center justify-center gap-2 shadow"
-                    title="Spectate live video call between patient and interpreter"
-                  >
-                    <Video className="w-4 h-4" />
-                    <span>Open call stream</span>
-                  </Button>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      onClick={() => setIsStreamOpen(true)}
+                      className="h-11 rounded-[10px] bg-indigo hover:bg-indigo-hover text-white font-semibold flex items-center justify-center gap-2 shadow"
+                      title="Spectate live video call between patient and interpreter in this window"
+                    >
+                      <Video className="w-4 h-4" />
+                      <span>Watch live stream</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open(`/dashboard/${sessionId}/call`, '_blank')}
+                      className="h-9 rounded-[10px] text-xs font-semibold flex items-center justify-center gap-1.5 text-slate-600 dark:text-slate-300"
+                      title="Open spectator stream in a new tab"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Pop out to new window</span>
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <>
@@ -832,6 +845,38 @@ export default function DashboardPage() {
           </DialogHeader>
 
           {pairingOpen && <KioskPairing sessionId={sessionId} />}
+        </DialogContent>
+      </Dialog>
+
+      {/* Doctor Live Call Spectator Modal */}
+      <Dialog open={isStreamOpen} onOpenChange={setIsStreamOpen}>
+        <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden bg-slate-950 border-slate-800 text-white flex flex-col rounded-3xl">
+          <DialogHeader className="p-4 bg-slate-900 border-b border-slate-800 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+              <DialogTitle className="text-base font-bold text-white flex items-center gap-2">
+                <span>Live Call Spectator: {patientDisplayName}</span>
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">
+                  Doctor Spectator (View Only)
+                </span>
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs text-slate-400">
+              Observing live WebRTC consultation between bedside patient and certified interpreter.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 w-full h-full min-h-0 overflow-hidden">
+            {isStreamOpen && (
+              <LiveKitVideoCall
+                roomName={sessionId}
+                participantName="Attending Doctor"
+                participantIdentity={`staff-${sessionId.slice(0, 8)}`}
+                role="staff"
+                onDisconnect={() => setIsStreamOpen(false)}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </main>
