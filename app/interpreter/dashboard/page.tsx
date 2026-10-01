@@ -18,6 +18,7 @@ import {
   REALTIME_EVENTS,
 } from '@/lib/realtime'
 import { createClient } from '@/lib/supabase/client'
+import { AudioAlarmBanner } from '@/components/audio-alarm-banner'
 
 interface IncomingRequest {
   id: string
@@ -27,38 +28,7 @@ interface IncomingRequest {
   requestedAt: string
 }
 
-function playIncomingCallRing() {
-  try {
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
-    if (!AudioContextClass) return
-    const ctx = new AudioContextClass()
-    const now = ctx.currentTime
-
-    // Standard high-priority two-tone emergency ring (853Hz + 960Hz)
-    const osc1 = ctx.createOscillator()
-    const osc2 = ctx.createOscillator()
-    const gain = ctx.createGain()
-
-    osc1.type = 'sine'
-    osc1.frequency.setValueAtTime(853, now)
-    osc2.type = 'sine'
-    osc2.frequency.setValueAtTime(960, now)
-
-    gain.gain.setValueAtTime(0.3, now)
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8)
-
-    osc1.connect(gain)
-    osc2.connect(gain)
-    gain.connect(ctx.destination)
-
-    osc1.start(now)
-    osc2.start(now)
-    osc1.stop(now + 0.8)
-    osc2.stop(now + 0.8)
-  } catch {}
-}
+import { playIncomingCallRing } from '@/lib/alarm-audio'
 
 export default function InterpreterDashboard() {
   const router = useRouter()
@@ -300,6 +270,8 @@ export default function InterpreterDashboard() {
               {requests.length} waiting
             </span>
           </div>
+
+          <AudioAlarmBanner className="mb-4" />
 
           {requests.length === 0 ? (
             <div className="rounded-3xl border-2 border-dashed border-border bg-card/60 p-10 sm:p-14 text-center flex flex-col items-center gap-3">

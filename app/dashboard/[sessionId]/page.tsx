@@ -6,6 +6,7 @@ import type { GestureTextPayload } from '@/hooks/use-session-realtime'
 import Image from 'next/image'
 import { KioskPairing } from '@/components/kiosk-pairing'
 import { EmergencyAlertBanner } from '@/components/emergency-alert-banner'
+import { AudioAlarmBanner } from '@/components/audio-alarm-banner'
 import { TranscriptFeed, isSevereOrCriticalEvent } from '@/components/transcript-feed'
 import { useSessionRealtime } from '@/hooks/use-session-realtime'
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
@@ -59,6 +60,20 @@ function GestureBanner({
   onSpeak,
 }: GestureBannerProps) {
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [timeAgo, setTimeAgo] = useState('just now')
+
+  useEffect(() => {
+    if (!latestGesture?.timestamp) return
+    const update = () => {
+      const secs = Math.round((Date.now() - new Date(latestGesture.timestamp).getTime()) / 1000)
+      if (secs < 5) setTimeAgo('just now')
+      else if (secs < 60) setTimeAgo(`${secs}s ago`)
+      else setTimeAgo(`${Math.round(secs / 60)}m ago`)
+    }
+    update()
+    const timer = setInterval(update, 5000)
+    return () => clearInterval(timer)
+  }, [latestGesture?.timestamp])
 
   if (!latestGesture) return null
 
@@ -99,12 +114,6 @@ function GestureBanner({
     ? 'text-amber-400'
     : 'text-blue-400'
 
-  const timeAgo = (() => {
-    const secs = Math.round((Date.now() - new Date(latestGesture.timestamp).getTime()) / 1000)
-    if (secs < 5)  return 'just now'
-    if (secs < 60) return `${secs}s ago`
-    return `${Math.round(secs / 60)}m ago`
-  })()
 
   return (
     <div
@@ -208,6 +217,16 @@ function GestureBanner({
 
 // \u2500\u2500\u2500 Dashboard page \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
+// Clearer spoken phrases keyed by display text (payload.text is the display text, not the raw label)
+const SPEECH_TEXT: Record<string, string> = {
+  'Need help': 'Patient needs help',
+  "Can't sleep": 'Patient cannot sleep or needs rest',
+  'Feeling weak / tired': 'Patient is feeling weak or tired',
+  'Coughing': 'Patient is coughing',
+  'Nausea': 'Patient feels nauseous',
+  'Itching': 'Patient has itching or skin irritation',
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const params = useParams<{ sessionId: string }>()
@@ -231,15 +250,6 @@ export default function DashboardPage() {
   const [gestureHistory,  setGestureHistory]  = useState<GestureTextPayload[]>([])
   const bannerTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
-  // Clearer spoken phrases keyed by display text (payload.text is the display text, not the raw label)
-  const SPEECH_TEXT: Record<string, string> = {
-    'Need help':             'Patient needs help',
-    "Can't sleep":           'Patient cannot sleep or needs rest',
-    'Feeling weak / tired':  'Patient is feeling weak or tired',
-    'Coughing':              'Patient is coughing',
-    'Nausea':                'Patient feels nauseous',
-    'Itching':               'Patient has itching or skin irritation',
-  }
 
   const handleGestureReceived = useCallback((payload: GestureTextPayload) => {
     setLatestGesture(payload)
@@ -266,6 +276,7 @@ export default function DashboardPage() {
     sessionStatus,
     events,
     clearAlert,
+    sendAlertAck,
     sendPlayClip,
     requestInterpreter,
     cancelInterpreterRequest,
@@ -274,6 +285,14 @@ export default function DashboardPage() {
     sessionId,
     onGestureReceived: handleGestureReceived,
   })
+
+  const handleAcknowledgeAlert = () => {
+    if (activeAlert) {
+      sendAlertAck(activeAlert.clipKey, 'Dr. Rajesh Sharma (Attending)')
+    }
+    clearAlert()
+    toast.success('Emergency alert acknowledged • Bedside tablet notified')
+  }
 
   const {
     isSupported,
@@ -513,10 +532,11 @@ export default function DashboardPage() {
               }
             }}
           />
+          <AudioAlarmBanner className="mb-2" />
           <EmergencyAlertBanner
             alert={activeAlert}
             patientDisplayName={patientDisplayName}
-            onAcknowledge={clearAlert}
+            onAcknowledge={handleAcknowledgeAlert}
             onRequestInterpreter={handlePageInterpreter}
           />
 

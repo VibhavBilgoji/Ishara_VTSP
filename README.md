@@ -54,10 +54,10 @@ When a deaf patient arrives in an acute emergency (e.g., myocardial infarction, 
 - **Audio-Visual Paging Chime**: Interpreters receive incoming hospital distress calls with dual-tone frequency chimes (853Hz + 960Hz) and can accept calls with a single click.
 
 ### Pillar 4: In-Browser Vision Gesture AI (P3 Standout Feature)
-- **100% Client-Side Machine Learning**: Runs entirely in the browser using WebAssembly (WASM). No raw patient video or camera frames are ever sent across the network, preserving strict patient privacy (HIPAA / DISHA compliant).
+- **100% Client-Side Machine Learning**: Runs entirely in the browser using WebAssembly (WASM). No raw patient video or camera frames are ever sent across the network, preserving patient privacy (engineered with privacy-first architecture aligned with DISHA & HIPAA principles).
 - **Dual MediaPipe Landmark Extraction**: Uses `@mediapipe/tasks-vision` to simultaneously track 21 3D coordinates per hand (both hands) and 12 facial blendshapes.
 - **Normalized 144-Dimensional Feature Vector**: Wrist-relative spatial normalization makes detection invariant to camera distance, patient hand size, and tilt.
-- **Custom Trained Random Forest Model**: 7.3 MB lightweight JSON tree architecture (`model.json` + `labels.json`) classifying 24 acute medical signs with **99.9% accuracy** on augmented data.
+- **Custom Trained Random Forest Model**: 3.3 MB lightweight JSON tree architecture (`model.json` + `labels.json`) classifying acute medical signs with fast tree traversal.
 - **Heuristic Stabilization**: 15-frame hold verification, 800ms debounce buffer, and live skeleton overlay canvas.
 
 ### Pillar 5: Medico-Legal Audit Trail & Bed Management
@@ -303,7 +303,7 @@ Ishara_VTSP/
 │   └── supabase/                          # Supabase SSR & service-role clients
 ├── public/
 │   ├── models/
-│   │   ├── model.json                     # 7.3 MB trained Random Forest
+│   │   ├── model.json                     # 3.3 MB trained Random Forest
 │   │   └── labels.json                    # 24 clinical sign labels
 │   └── logo.png                           # Ishara brand asset
 └── scripts/
@@ -385,9 +385,9 @@ Open [http://localhost:3000](http://localhost:3000) to access the Ishara portal.
 
 ## 11. Medico-Legal Compliance & Privacy
 
-- **DISHA & HIPAA Alignment**: Camera video from the vision recognition module runs **exclusively in local browser RAM via WASM**. No video feeds or images are ever transmitted to an external server.
-- **Ephemerality of WebRTC Calls**: LiveKit video calls between the patient and interpreter are peer-to-peer routed and are never recorded, respecting absolute patient bodily dignity.
-- **Tamper-Evident Clinical Record**: The `session_events` ledger provides timestamped proof of every communication event, protecting both the patient's rights and the hospital from diagnostic liability.
+- **DISHA & HIPAA Alignment**: Camera video from the vision recognition module runs **exclusively in local browser RAM via WASM**. No raw video feeds or patient camera frames are ever transmitted to an external server.
+- **Ephemerality of WebRTC Calls**: LiveKit video calls between the patient and certified interpreter are routed through LiveKit Cloud's ultra-low latency SFU, encrypted in transit, and are never recorded, respecting absolute patient bodily dignity.
+- **Tamper-Evident Clinical Record**: The `session_events` ledger provides timestamped proof of communication events, protecting patient rights and ward communication history.
 
 ---
 

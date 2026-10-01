@@ -17,6 +17,7 @@ import type {
   SessionEvent,
   GestureTextPayload,
   ClipPriority,
+  AlertAckPayload,
 } from '@/lib/types'
 
 // Re-export so consumers can import GestureTextPayload from this hook
@@ -28,6 +29,7 @@ interface UseSessionRealtimeOptions {
   onClipReceived?: (clip: PlayClipPayload) => void
   onStatusReceived?: (status: StatusChangePayload) => void
   onGestureReceived?: (payload: GestureTextPayload) => void
+  onAlertAck?: (ack: AlertAckPayload) => void
 }
 
 export function useSessionRealtime({
@@ -36,11 +38,13 @@ export function useSessionRealtime({
   onClipReceived,
   onStatusReceived,
   onGestureReceived,
+  onAlertAck,
 }: UseSessionRealtimeOptions) {
   const [activeAlert, setActiveAlert] = useState<PictogramAlertPayload | null>(null)
   const [activeClip, setActiveClip] = useState<PlayClipPayload | null>(null)
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>('active')
   const [events, setEvents] = useState<SessionEvent[]>([])
+  const [lastAck, setLastAck] = useState<AlertAckPayload | null>(null)
   const [isConnected, setIsConnected] = useState(false)
 
   const broadcastChannelRef = useRef<BroadcastChannel | null>(null)
@@ -118,9 +122,13 @@ export function useSessionRealtime({
           },
           ...prev,
         ])
+      } else if (type === REALTIME_EVENTS.ALERT_ACK) {
+        const ackData = payload as AlertAckPayload
+        setLastAck(ackData)
+        onAlertAck?.(ackData)
       }
     },
-    [sessionId, onAlertReceived, onClipReceived, onStatusReceived, onGestureReceived]
+    [sessionId, onAlertReceived, onClipReceived, onStatusReceived, onGestureReceived, onAlertAck]
   )
 
   useEffect(() => {
@@ -159,6 +167,9 @@ export function useSessionRealtime({
         channel
           .on('broadcast', { event: REALTIME_EVENTS.PICTOGRAM_ALERT }, (response: any) => {
             handleIncomingEvent(REALTIME_EVENTS.PICTOGRAM_ALERT, response.payload)
+          })
+          .on('broadcast', { event: REALTIME_EVENTS.ALERT_ACK }, (response: any) => {
+            handleIncomingEvent(REALTIME_EVENTS.ALERT_ACK, response.payload)
           })
           .on('broadcast', { event: REALTIME_EVENTS.PLAY_CLIP }, (response: any) => {
             handleIncomingEvent(REALTIME_EVENTS.PLAY_CLIP, response.payload)
@@ -552,13 +563,44 @@ export function useSessionRealtime({
     [sessionId]
   )
 
+  /** Send an acknowledgement from clinician to patient kiosk */
+  const sendAlertAck = useCallback(
+    (alertId?: string, acknowledgedBy = 'Doctor / Clinical Staff') => {
+      const payload: AlertAckPayload = {
+        type: 'alert_ack',
+        sessionId,
+        alertId,
+        acknowledgedBy,
+        timestamp: new Date().toISOString(),
+      }
+
+      if (broadcastChannelRef.current) {
+        broadcastChannelRef.current.postMessage({
+          type: REALTIME_EVENTS.ALERT_ACK,
+          payload,
+        })
+      }
+
+      if (supabaseChannelRef.current) {
+        supabaseChannelRef.current.send({
+          type: 'broadcast',
+          event: REALTIME_EVENTS.ALERT_ACK,
+          payload,
+        })
+      }
+    },
+    [sessionId]
+  )
+
   return {
     activeAlert,
     activeClip,
     sessionStatus,
     events,
     isConnected,
+    lastAck,
     sendPictogramAlert,
+    sendAlertAck,
     sendPlayClip,
     sendStatusChange,
     requestInterpreter,
