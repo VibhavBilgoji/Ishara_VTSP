@@ -9,7 +9,8 @@ import { EmergencyAlertBanner } from '@/components/emergency-alert-banner'
 import { TranscriptFeed, isSevereOrCriticalEvent } from '@/components/transcript-feed'
 import { useSessionRealtime } from '@/hooks/use-session-realtime'
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
-import { searchClips, getClipByKey, getClipUrl } from '@/lib/isl-clips'
+import { searchClips, getClipUrl, hasNegationOrContradiction } from '@/lib/isl-clips'
+import type { ISLClipMatch } from '@/lib/types'
 import {
   ArrowLeft,
   Video,
@@ -19,7 +20,6 @@ import {
   ExternalLink,
   Sparkles,
   Clock,
-  FileText,
   Loader2,
   QrCode,
   AlertTriangle,
@@ -217,6 +217,7 @@ export default function DashboardPage() {
 
   const [inputText, setInputText] = useState('')
   const [isSearching, setIsSearching] = useState(false)
+  const [clipPreview, setClipPreview] = useState<{ query: string; matches: ISLClipMatch[]; selected: ISLClipMatch } | null>(null)
   const [isPagingInterpreter, setIsPagingInterpreter] = useState(false)
   const [patientDisplayName, setPatientDisplayName] = useState('Bedside patient')
   const [pairingOpen, setPairingOpen] = useState(false)
@@ -335,60 +336,68 @@ export default function DashboardPage() {
   const handleSendISLPhrase = async (phrase?: string, clipKey?: string) => {
     const query = phrase || inputText.trim()
     if (!query && !clipKey) return
+    if (hasNegationOrContradiction(query)) {
+      setClipPreview(null)
+      toast.error('Negative or contradictory instructions need a live interpreter. No sign was sent.')
+      return
+    }
 
     setIsSearching(true)
     try {
-      let bestClip: any = null
-      let clipUrl: string = ''
-
-      // 1. Try API lookup first for server-signed Supabase URL
-      try {
-        const res = await fetch('/api/isl-lookup', {
+      let matches: ISLClipMatch[] = []
+      const res = await fetch('/api/isl-lookup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(clipKey ? { key: clipKey } : { query }),
+          body: JSON.stringify(clipKey ? { key: clipKey, query } : { query }),
         })
-        if (res.ok) {
-          const data = await res.json()
-          if (data?.match?.clip) {
-            bestClip = data.match.clip
-            clipUrl = data.match.signedUrl || getClipUrl(bestClip.storage_path)
-          }
-        }
-      } catch (err) {
-        console.warn('API lookup error, falling back to client index', err)
+      if (!res.ok) throw new Error(`ISL lookup failed (${res.status})`)
+      const data = await res.json()
+      if (data?.safetyBlocked) {
+        toast.error(data.message || 'Use a live interpreter for this instruction.')
+        return
       }
-
-      // 2. Fallback to client-side search if API did not return a match
-      if (!bestClip) {
-        if (clipKey) {
-          const matched = getClipByKey(clipKey)
-          if (matched) {
-            bestClip = matched
-            clipUrl = getClipUrl(matched.storage_path)
-          }
-        }
-        if (!bestClip && query) {
-          const matches = searchClips(query, 1)
-          if (matches.length > 0 && matches[0]) {
-            bestClip = matches[0].clip
-            clipUrl = matches[0].signedUrl || getClipUrl(bestClip.storage_path)
-          }
-        }
+      if (data?.match?.clip) {
+        matches = (data.allMatches?.length ? data.allMatches : [data.match])
+          .map((match: ISLClipMatch) => ({ ...match, signedUrl: match.signedUrl || getClipUrl(match.clip.storage_path) }))
+      } else if (!clipKey) {
+        // Offline fallback is guarded by the same negation check.
+        matches = searchClips(query, 3)
       }
-
-      if (bestClip && clipUrl) {
-        sendPlayClip(bestClip.key, clipUrl, bestClip.label)
-        toast.success(`Broadcasting ISL clip "${bestClip.label}" to patient tablet`)
-        setInputText('')
-        resetTranscript()
+      if (matches.length) {
+        setClipPreview({ query, matches, selected: matches[0] })
+        setInputText(phrase || inputText)
       } else {
-        toast.error(`No matching ISL clip found for "${query || clipKey}". Try rephrasing or requesting an interpreter.`)
+        setClipPreview(null)
+        toast.error(`No matching ISL clip found for "${query || clipKey}". Request an interpreter.`)
       }
     } catch {
-      toast.error('Failed to lookup ISL sign')
+      const matches = !clipKey ? searchClips(query, 3) : []
+      if (matches.length) setClipPreview({ query, matches, selected: matches[0] })
+      else toast.error('ISL lookup failed. Please request a live interpreter.')
     } finally {
       setIsSearching(false)
+    }
+  }
+
+  const confirmSendISL = async () => {
+    if (!clipPreview) return
+    const { query, selected } = clipPreview
+    try {
+      const response = await fetch(`/api/session/${sessionId}/events`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventType: 'isl_played', payload: {
+          query, matchedKey: selected.clip.key, confidence: selected.score,
+          source: selected.matchedBy || 'exact',
+        } }),
+      })
+      if (!response.ok) throw new Error('Audit event could not be saved')
+      sendPlayClip(selected.clip.key, selected.signedUrl, selected.clip.label)
+      toast.success(`Sent “${selected.clip.label}” to patient tablet`)
+      setClipPreview(null)
+      setInputText('')
+      resetTranscript()
+    } catch {
+      toast.error('Could not save the audit record. The sign was not sent.')
     }
   }
 
@@ -717,6 +726,36 @@ export default function DashboardPage() {
                     {isSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </Button>
                 </div>
+
+                {clipPreview && (
+                  <div className="rounded-xl border border-teal-200 dark:border-teal-900 bg-teal-50/70 dark:bg-teal-950/30 p-4 space-y-3">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <video key={clipPreview.selected.signedUrl} src={clipPreview.selected.signedUrl}
+                        controls preload="metadata" className="w-full sm:w-48 aspect-video rounded-lg bg-slate-950 object-cover" />
+                      <div className="min-w-0 space-y-1">
+                        <p className="font-bold text-slate-900 dark:text-white">{clipPreview.selected.clip.label}</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-300">Caption: {clipPreview.query}</p>
+                        <p className="text-xs text-slate-500">Confidence {Math.round(clipPreview.selected.score * 100)}% · Source: {clipPreview.selected.matchedBy || 'exact'}</p>
+                      </div>
+                    </div>
+                    {clipPreview.matches.length > 1 && (
+                      <div className="flex flex-wrap gap-2" aria-label="Alternative sign matches">
+                        {clipPreview.matches.filter((match) => match.clip.key !== clipPreview.selected.clip.key).map((match) => (
+                          <button key={match.clip.key} type="button" onClick={() => setClipPreview({ ...clipPreview, selected: match })}
+                            className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs hover:border-teal-500">
+                            {match.clip.label} ({Math.round(match.score * 100)}%)
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setClipPreview(null)}>Cancel</Button>
+                      <Button onClick={confirmSendISL} className="bg-[#084C5B] hover:bg-[#0D748A] text-white">
+                        {clipPreview.selected.score < 0.85 ? 'Confirm & Send sign' : 'Send sign to patient'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Quick Action Chips */}
                 <div>

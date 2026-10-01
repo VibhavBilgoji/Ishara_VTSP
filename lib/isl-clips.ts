@@ -177,6 +177,17 @@ function cleanQueryString(str: string): string {
     .trim()
 }
 
+/** Conservative multilingual guard: ambiguous negative instructions go to a human interpreter. */
+export function hasNegationOrContradiction(query: string): boolean {
+  const normalized = (query || '').toLocaleLowerCase().normalize('NFKC').replace(/[’‘]/g, "'")
+  // These catalog phrases describe a patient symptom or a clinically useful denial,
+  // rather than a negative instruction to perform an action.
+  if (/^(?:(?:i )?(?:can'?t|cannot) breathe|no known allerg(?:y|ies)|cant-breathe|no-known-allergy)[.!?]*$/u.test(normalized.trim())) return false
+  const tokens = normalized.match(/[\p{L}\p{N}']+/gu) || []
+  const negatives = new Set(['not', 'no', 'never', 'without', 'cannot', "can't", 'cant', "don't", 'dont', "doesn't", 'doesnt', "didn't", 'didnt', "won't", 'wont', "shouldn't", 'shouldnt', "mustn't", 'mustnt', 'neither', 'nor', 'nahi', 'nahin', 'nah', 'mat'])
+  return tokens.some((token) => negatives.has(token)) || /नहीं|नही|मत/u.test(normalized)
+}
+
 /**
  * Search for ISL clips matching a free-text phrase or exact key.
  * Uses a robust 4-tier matching strategy:
@@ -191,7 +202,7 @@ export function searchClips(query: string, maxResults = 5): ISLClipMatch[] {
   }
 
   const rawQuery = (query || '').trim()
-  if (!rawQuery) return []
+  if (!rawQuery || hasNegationOrContradiction(rawQuery)) return []
 
   const cleanQuery = cleanQueryString(rawQuery)
   const querySlug = cleanQuery.replace(/\s+/g, '-')
