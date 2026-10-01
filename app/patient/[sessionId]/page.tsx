@@ -162,7 +162,7 @@ export default function PatientPage() {
             <div className="flex items-center gap-2">
               <div className="relative w-6 h-6 sm:w-7 sm:h-7 rounded-lg overflow-hidden bg-teal-500/20 flex items-center justify-center shrink-0">
                 <Image
-                  src="/logo.png"
+                  src="/logo-mark-white.png"
                   alt="Ishara Logo"
                   fill
                   sizes="28px"
@@ -230,7 +230,7 @@ export default function PatientPage() {
         <div className="max-w-[1280px] mx-auto px-4 sm:px-7 min-h-[76px] py-3 flex flex-wrap items-center gap-x-5 gap-y-2">
           <div className="flex items-center gap-3">
             <span className="relative w-10 h-10 rounded-xl border border-border bg-white overflow-hidden shrink-0">
-              <Image src="/logo.png" alt="" fill sizes="40px" className="object-contain p-1" priority />
+              <Image src="/logo-mark.png" alt="" fill sizes="40px" className="object-contain p-1" priority />
             </span>
             <span className="font-heading font-bold text-2xl sm:text-[28px] tracking-tight">{bedName}</span>
           </div>

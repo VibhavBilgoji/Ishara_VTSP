@@ -59,7 +59,7 @@ export default function InterpreterCallPage() {
           <div className="flex items-center gap-2">
             <div className="relative w-6 h-6 rounded-md overflow-hidden bg-teal-500/20 flex items-center justify-center">
               <Image
-                src="/logo.png"
+                src="/logo-mark-white.png"
                 alt="Ishara Logo"
                 fill
                 sizes="24px"

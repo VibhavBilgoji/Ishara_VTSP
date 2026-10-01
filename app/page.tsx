@@ -152,7 +152,7 @@ export default function LandingPage() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3">
             <span className="w-11 h-11 rounded-xl bg-white border border-border flex items-center justify-center overflow-hidden">
-              <Image src="/logo.png" alt="" width={36} height={36} className="object-contain" priority />
+              <Image src="/logo-mark.png" alt="" width={36} height={36} className="object-contain" priority />
             </span>
             <span className="flex flex-col leading-tight">
               <span className="font-heading font-bold text-[22px] tracking-tight">Ishara</span>

@@ -243,7 +243,7 @@ export default function HospitalRosterPage() {
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-teal-50 border border-teal-200 flex items-center justify-center shrink-0">
-              <Image src="/logo.png" alt="Ishara Logo" fill sizes="36px" className="object-contain" priority />
+              <Image src="/logo-mark.png" alt="Ishara Logo" fill sizes="36px" className="object-contain" priority />
             </div>
             <div>
               <div className="flex items-center gap-2">

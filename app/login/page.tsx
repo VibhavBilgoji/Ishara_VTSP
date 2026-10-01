@@ -7,7 +7,7 @@ import { isStaffRole } from '@/lib/roles'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Stethoscope, Video, BedDouble, ArrowRight, Loader2 } from 'lucide-react'
+import { Stethoscope, Video, BedDouble, ArrowRight, Loader2, HeartPulse, CheckCircle2 } from 'lucide-react'
 
 interface ActiveBedItem {
   id: string
@@ -56,16 +56,55 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] bg-background text-foreground">
       {/* Brand panel */}
-      <aside className="bg-teal text-white px-6 py-8 sm:px-12 sm:py-12 flex flex-col justify-between gap-10">
-        <Link href="/" className="flex items-center gap-3 w-fit">
-          <span className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center">
-            <Image src="/logo.png" alt="" width={40} height={40} className="object-contain" priority />
-          </span>
+      <aside className="bg-teal text-white px-6 py-8 sm:px-12 sm:py-12 lg:pb-24 flex flex-col justify-between gap-10">
+        <Link href="/" className="flex items-center gap-3 w-fit" aria-label="Ishara home">
+          <Image src="/logo-mark-white.png" alt="" width={52} height={52} className="object-contain" priority />
           <span className="flex flex-col leading-tight">
             <span className="font-heading font-bold text-2xl">Ishara</span>
             <span lang="hi" className="text-sm text-teal-100">इशारा</span>
           </span>
         </Link>
+
+        {/* Illustration: one tap travelling from the bedside to staff and an interpreter */}
+        <div aria-hidden className="hidden lg:flex flex-1 items-center justify-center min-h-[320px]">
+          <div className="relative w-[380px] h-[380px] xl:w-[460px] xl:h-[460px]">
+            <span className="absolute inset-[4%] rounded-full border border-white/10" />
+            <span className="absolute inset-[18%] rounded-full border border-white/15" />
+            <span className="absolute inset-[32%] rounded-full border border-white/20" />
+            <span className="absolute inset-[35%] rounded-full bg-white/10 flex items-center justify-center">
+              <Image src="/logo-mark-white.png" alt="" width={96} height={96} className="w-16 h-16 xl:w-20 xl:h-20 object-contain" />
+            </span>
+
+            <div className="absolute left-[-2%] top-[12%] w-[46%] rounded-2xl bg-white text-[#8F1C14] border-[3px] border-[#C8281E] p-3 shadow-xl">
+              <span className="flex items-start justify-between">
+                <HeartPulse className="w-7 h-7" strokeWidth={2.2} />
+                <span className="px-1.5 py-0.5 rounded-[4px] bg-[#C8281E] text-white text-[10px] font-bold tracking-[0.06em]">
+                  URGENT
+                </span>
+              </span>
+              <span className="block mt-2 font-bold text-[15px] leading-tight">Chest Pain</span>
+              <span lang="hi" className="block text-xs opacity-85">सीने में दर्द</span>
+            </div>
+
+            <div className="absolute right-[-8%] top-[28%] w-[46%] rounded-2xl bg-[#4F46E5] text-white p-3 shadow-xl flex items-center gap-2.5">
+              <span className="w-9 h-9 shrink-0 rounded-xl bg-white/20 flex items-center justify-center">
+                <Video className="w-5 h-5" />
+              </span>
+              <span className="flex flex-col leading-tight">
+                <span className="text-[13px] font-bold">Interpreter joined</span>
+                <span className="text-[11px] opacity-85">Live ISL video</span>
+              </span>
+            </div>
+
+            <div className="absolute left-[6%] bottom-[8%] w-[56%] rounded-2xl bg-white text-[#14532D] p-3 shadow-xl flex items-center gap-2.5">
+              <CheckCircle2 className="w-6 h-6 shrink-0 text-[#16A34A]" />
+              <span className="flex flex-col leading-tight">
+                <span className="text-[13px] font-bold">Doctor has been told</span>
+                <span lang="hi" className="text-[11px] opacity-85">डॉक्टर को सूचित किया गया</span>
+              </span>
+            </div>
+          </div>
+        </div>
 
         <div className="space-y-5 max-w-md">
           <h1 className="font-heading font-bold text-4xl sm:text-5xl leading-[1.02] tracking-tight">

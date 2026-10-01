@@ -460,7 +460,7 @@ export default function DashboardPage() {
             aria-label="Back to bed roster"
           >
             <span className="relative w-9 h-9 rounded-[10px] border border-border bg-white overflow-hidden shrink-0">
-              <Image src="/logo.png" alt="" fill sizes="36px" className="object-contain p-1" priority />
+              <Image src="/logo-mark.png" alt="" fill sizes="36px" className="object-contain p-1" priority />
             </span>
             <span className="font-heading font-bold text-[19px]">Ishara</span>
           </button>

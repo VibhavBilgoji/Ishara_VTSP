@@ -261,7 +261,7 @@ export default function InterpreterDashboard() {
         <div className="max-w-[1240px] mx-auto w-full px-4 sm:px-6 py-3 flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2.5">
             <span className="relative w-9 h-9 rounded-[10px] border border-border bg-white overflow-hidden shrink-0">
-              <Image src="/logo.png" alt="" fill sizes="36px" className="object-contain p-1" priority />
+              <Image src="/logo-mark.png" alt="" fill sizes="36px" className="object-contain p-1" priority />
             </span>
             <span className="font-heading font-bold text-[19px]">Ishara</span>
           </div>
