@@ -11,7 +11,7 @@ import { Stethoscope, Video, BedDouble, ArrowRight, Loader2, HeartPulse, CheckCi
 
 interface ActiveBedItem {
   id: string
-  bed_label: string
+  bed_label?: string | null
   status: string
 }
 
@@ -21,6 +21,10 @@ export default function LoginPage() {
   const [activeBeds, setActiveBeds] = useState<ActiveBedItem[]>([])
   const [isResolving, setIsResolving] = useState(false)
   const [isStaff, setIsStaff] = useState(false)
+  const [bedsLoading, setBedsLoading] = useState(true)
+  const [bedLoadError, setBedLoadError] = useState('')
+
+  const bedName = (bed: ActiveBedItem) => bed.bed_label?.trim() || `Session ${bed.id.slice(0, 8)}`
 
   useEffect(() => {
     async function loadBeds() {
@@ -32,14 +36,24 @@ export default function LoginPage() {
         if (!profile || !isStaffRole(profile.role) || !profile.hospital_id) return
         setIsStaff(true)
         const response = await fetch('/api/session?list=true&labels=true')
-        if (response.ok) setActiveBeds((await response.json()).sessions)
-      } catch { /* Anonymous portal selection remains available. */ }
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Could not load active beds')
+        setActiveBeds(Array.isArray(data.sessions) ? data.sessions : [])
+      } catch {
+        setBedLoadError('Could not load active beds. Refresh the page or enter a session ID.')
+      } finally {
+        setBedsLoading(false)
+      }
     }
     void loadBeds()
   }, [])
 
   const handleOpenBedsideTablet = async (e?: React.FormEvent, directBedOrId?: string) => {
     e?.preventDefault()
+    if (!isStaff) {
+      router.push('/auth/hospital')
+      return
+    }
     const target = (directBedOrId || bedInput).trim()
     if (!target) return
     setIsResolving(true)
@@ -174,13 +188,12 @@ export default function LoginPage() {
             <span className="space-y-1">
               <span className="block font-heading font-bold text-xl">Bedside tablet</span>
               <span className="block text-[15px] leading-normal text-muted-foreground">
-                Scan a pairing QR code from the staff console. Signed-in staff can open a bed below.
+                Scan a pairing QR code from the staff console to connect this device. Sign in as hospital staff on this device to choose an active bed.
               </span>
             </span>
           </div>
-          {isStaff && (
           <form onSubmit={(e) => handleOpenBedsideTablet(e)} className="flex flex-wrap gap-2.5">
-            <label htmlFor="bed-code" className="sr-only">Bed name or session ID</label>
+            <label htmlFor="bed-code" className="w-full text-sm font-semibold">Bed name or session ID</label>
             <input
               id="bed-code"
               placeholder="Bed 2, Bed 5 or session ID"
@@ -190,7 +203,7 @@ export default function LoginPage() {
             />
             <button
               type="submit"
-              disabled={isResolving}
+              disabled={isResolving || bedsLoading}
               className="h-[52px] px-6 rounded-xl bg-teal hover:bg-teal-light text-white font-semibold flex items-center gap-2 disabled:opacity-70 transition-colors"
             >
               {isResolving ? (
@@ -199,10 +212,14 @@ export default function LoginPage() {
                   Finding bed…
                 </>
               ) : (
-                'Open bed console'
+                bedsLoading ? 'Loading beds…' : isStaff ? 'Open bed console' : 'Sign in to choose a bed'
               )}
             </button>
           </form>
+
+          {isStaff && bedLoadError && <p role="alert" className="text-sm text-destructive">{bedLoadError}</p>}
+          {isStaff && !bedsLoading && !bedLoadError && activeBeds.length === 0 && (
+            <p className="text-sm text-muted-foreground">No active beds. Admit a patient in the hospital dashboard first.</p>
           )}
 
           {activeBeds.length > 0 && (
@@ -213,13 +230,14 @@ export default function LoginPage() {
                   key={bed.id}
                   type="button"
                   onClick={() => {
-                    setBedInput(bed.bed_label)
+                    setBedInput(bed.bed_label?.trim() || bed.id)
                     handleOpenBedsideTablet(undefined, bed.id)
                   }}
-                  className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full border border-input bg-card text-sm font-semibold text-secondary-foreground hover:border-teal hover:text-teal-ink transition-colors"
+                  title={`Open ${bedName(bed)} · ${bed.id}`}
+                  className="inline-flex items-center gap-2 min-h-11 px-3.5 py-2 rounded-xl border border-input bg-card text-sm font-semibold text-foreground hover:border-teal hover:text-teal-ink transition-colors max-w-full"
                 >
-                  <span className="w-2 h-2 rounded-full bg-success" />
-                  {bed.bed_label}
+                  <span className="w-2 h-2 shrink-0 rounded-full bg-success" aria-hidden="true" />
+                  <span className="break-all">{bedName(bed)}</span>
                 </button>
               ))}
             </div>
