@@ -23,15 +23,15 @@ async function seed() {
   const { error: hospError } = await supabase.from('hospitals').upsert(
     {
       id: hospitalId,
-      name: 'Apollo Multi-Specialty Hospital (New Delhi)',
+      name: 'Ishara Demo Hospital',
     },
     { onConflict: 'id' }
   )
 
   if (hospError) {
-    console.error('Error upserting hospital:', hospError)
+    throw hospError
   } else {
-    console.log('✅ Hospital: Apollo Multi-Specialty Hospital (New Delhi)')
+    console.log('✅ Hospital: Ishara Demo Hospital')
   }
 
   // 2. Production Users (Doctors and Interpreters)
@@ -72,17 +72,19 @@ async function seed() {
     let userId: string | null = null
 
     // Check if user already exists in auth.users
-    const { data: existingUserList } = await supabase.auth.admin.listUsers()
+    const { data: existingUserList, error: listError } = await supabase.auth.admin.listUsers()
+    if (listError) throw listError
     const found = existingUserList?.users?.find((u) => u.email === user.email)
 
     if (found) {
       userId = found.id
       // Update password and metadata
-      await supabase.auth.admin.updateUserById(userId, {
+      const { error: updateError } = await supabase.auth.admin.updateUserById(userId, {
         password: user.password,
         email_confirm: true,
         user_metadata: { full_name: user.fullName, role: user.role },
       })
+      if (updateError) throw updateError
       console.log(`🔄 Updated existing user auth: ${user.email}`)
     } else {
       // Create user
@@ -95,7 +97,7 @@ async function seed() {
 
       if (createError) {
         console.error(`Error creating ${user.email}:`, createError)
-        continue
+        throw createError
       }
       userId = newUserData.user.id
       console.log(`✅ Created user auth: ${user.email}`)
@@ -114,7 +116,7 @@ async function seed() {
       )
 
       if (profileError) {
-        console.error(`Error upserting profile for ${user.email}:`, profileError)
+        throw profileError
       } else {
         console.log(`✅ Profile: ${user.fullName} (${user.role})`)
       }
@@ -132,7 +134,7 @@ async function seed() {
         )
 
         if (presError) {
-          console.error(`Error upserting presence for ${user.email}:`, presError)
+          throw presError
         } else {
           console.log(`✅ Interpreter Presence: ${user.email} -> ${user.presenceStatus}`)
         }
@@ -143,14 +145,14 @@ async function seed() {
   // 3. Initial Production Bedside Patients (Sessions)
   const initialSessions = [
     {
-      id: '00000000-0000-0000-0000-000000000001',
+      bed_label: 'bed 4a',
       hospital_id: hospitalId,
       patient_display_name: 'Bed 4A - Ramesh Kumar (ISL)',
       status: 'active',
       active_mode: 'pictogram',
     },
     {
-      id: '00000000-0000-0000-0000-000000000002',
+      bed_label: 'icu bed 2',
       hospital_id: hospitalId,
       patient_display_name: 'ICU Bed 2 - Sunita Patel (Deaf/Mute)',
       status: 'active',
@@ -159,9 +161,17 @@ async function seed() {
   ]
 
   for (const session of initialSessions) {
-    const { error: sessError } = await supabase.from('sessions').upsert(session, { onConflict: 'id' })
+    const { data: creator, error: creatorError } = await supabase.from('profiles')
+      .select('id').eq('hospital_id', hospitalId).eq('role', 'doctor').limit(1).single()
+    if (creatorError) throw creatorError
+    const { data: existing, error: lookupError } = await supabase.from('sessions').select('id')
+      .eq('hospital_id', hospitalId).eq('bed_label', session.bed_label).neq('status', 'closed').maybeSingle()
+    if (lookupError) throw lookupError
+    // Preserve existing sessions and audit data when the demo seed is rerun.
+    if (existing) continue
+    const { error: sessError } = await supabase.from('sessions').insert({ ...session, created_by: creator.id })
     if (sessError) {
-      console.error(`Error upserting session ${session.patient_display_name}:`, sessError)
+      throw sessError
     } else {
       console.log(`✅ Active Patient Session: ${session.patient_display_name}`)
     }
@@ -172,8 +182,8 @@ async function seed() {
   console.log('Doctor Login:      dr.sharma@apollo.health  / Ishara2026!')
   console.log('Doctor Login 2:    dr.verma@apollo.health   / Ishara2026!')
   console.log('Interpreter Login: ananya.isl@relay.org     / Ishara2026!')
-  console.log('Bedside Tablet:    http://localhost:3000/patient/00000000-0000-0000-0000-000000000001')
+  console.log('Bedside Tablet:    Sign in as staff, select a bed, and generate a pairing QR code.')
   console.log('----------------------------------------------------')
 }
 
-seed().catch(console.error)
+seed().catch((error) => { console.error('Seed failed:', error); process.exitCode = 1 })

@@ -2,13 +2,16 @@
 
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
+import { createClient } from '@/lib/supabase/client'
+import { isStaffRole } from '@/lib/roles'
+import { toast } from 'sonner'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Stethoscope, Video, BedDouble, ArrowRight, Loader2 } from 'lucide-react'
 
 interface ActiveBedItem {
   id: string
-  patient_display_name: string
+  bed_label: string
   status: string
 }
 
@@ -17,54 +20,37 @@ export default function LoginPage() {
   const [bedInput, setBedInput] = useState('')
   const [activeBeds, setActiveBeds] = useState<ActiveBedItem[]>([])
   const [isResolving, setIsResolving] = useState(false)
+  const [isStaff, setIsStaff] = useState(false)
 
-  // Fetch all active hospital beds on mount so user can see & select any bed directly
   useEffect(() => {
-    fetch('/api/session?list=true')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.sessions && Array.isArray(data.sessions)) {
-          setActiveBeds(data.sessions)
-        }
-      })
-      .catch(() => {})
+    async function loadBeds() {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: profile } = await supabase.from('profiles').select('role, hospital_id').eq('id', user.id).single()
+        if (!profile || !isStaffRole(profile.role) || !profile.hospital_id) return
+        setIsStaff(true)
+        const response = await fetch('/api/session?list=true&labels=true')
+        if (response.ok) setActiveBeds((await response.json()).sessions)
+      } catch { /* Anonymous portal selection remains available. */ }
+    }
+    void loadBeds()
   }, [])
 
   const handleOpenBedsideTablet = async (e?: React.FormEvent, directBedOrId?: string) => {
-    if (e) e.preventDefault()
+    e?.preventDefault()
     const target = (directBedOrId || bedInput).trim()
-
-    // Default to Bed 4A canonical session if empty
-    if (!target) {
-      router.push('/patient/00000000-0000-0000-0000-000000000001')
-      return
-    }
-
-    // If it's already a full 36-character UUID, navigate directly
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(target)) {
-      router.push(`/patient/${target}`)
-      return
-    }
-
-    // Otherwise, resolve bed name/number via API (e.g. "Bed 2", "Bed 5", "ICU 2")
+    if (!target) return
     setIsResolving(true)
     try {
-      const res = await fetch(`/api/session?bed=${encodeURIComponent(target)}`)
-      if (res.ok) {
-        const data = await res.json()
-        if (data?.session?.id) {
-          router.push(`/patient/${data.session.id}`)
-          return
-        }
-      }
-    } catch (err) {
-      console.warn('Error resolving bed session:', err)
-    } finally {
-      setIsResolving(false)
-    }
-
-    // Fallback: navigate with target
-    router.push(`/patient/${encodeURIComponent(target)}`)
+      const byId = /^[0-9a-f-]{36}$/i.test(target)
+      const response = await fetch(`/api/session?${byId ? 'id' : 'bed'}=${encodeURIComponent(target)}`)
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Bed not found')
+      router.push(`/dashboard/${data.session.id}`)
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Bed not found') }
+    finally { setIsResolving(false) }
   }
 
   return (
@@ -90,6 +76,7 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
         <div className="rounded-2xl bg-white/10 p-5 space-y-3 text-sm">
           <span className="block text-xs font-bold tracking-[0.08em] text-teal-200">DEMO ACCOUNTS</span>
           <div className="grid sm:grid-cols-2 gap-3">
@@ -105,6 +92,7 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
+        )}
       </aside>
 
       {/* Role choices */}
@@ -141,10 +129,7 @@ export default function LoginPage() {
           <ArrowRight className="w-5 h-5 text-indigo-ink group-hover:translate-x-1 transition-transform" />
         </Link>
 
-        <form
-          onSubmit={(e) => handleOpenBedsideTablet(e)}
-          className="flex flex-col gap-4 p-6 rounded-[20px] bg-card border border-border"
-        >
+        <div className="flex flex-col gap-4 p-6 rounded-[20px] bg-card border border-border">
           <div className="flex items-center gap-5">
             <span className="w-14 h-14 shrink-0 rounded-2xl bg-teal-surface text-teal-ink flex items-center justify-center">
               <BedDouble className="w-6 h-6" />
@@ -152,11 +137,12 @@ export default function LoginPage() {
             <span className="space-y-1">
               <span className="block font-heading font-bold text-xl">Bedside tablet</span>
               <span className="block text-[15px] leading-normal text-muted-foreground">
-                Type a bed (e.g. Bed 2), pick an active bed, or scan the QR from the staff console.
+                Scan a pairing QR code from the staff console. Signed-in staff can open a bed below.
               </span>
             </span>
           </div>
-          <div className="flex flex-wrap gap-2.5">
+          {isStaff && (
+          <form onSubmit={(e) => handleOpenBedsideTablet(e)} className="flex flex-wrap gap-2.5">
             <label htmlFor="bed-code" className="sr-only">Bed name or session ID</label>
             <input
               id="bed-code"
@@ -176,10 +162,11 @@ export default function LoginPage() {
                   Finding bed…
                 </>
               ) : (
-                'Pair tablet'
+                'Open bed console'
               )}
             </button>
-          </div>
+          </form>
+          )}
 
           {activeBeds.length > 0 && (
             <div className="pt-4 border-t border-border flex flex-wrap items-center gap-2">
@@ -189,18 +176,18 @@ export default function LoginPage() {
                   key={bed.id}
                   type="button"
                   onClick={() => {
-                    setBedInput(bed.patient_display_name)
+                    setBedInput(bed.bed_label)
                     handleOpenBedsideTablet(undefined, bed.id)
                   }}
                   className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full border border-input bg-card text-sm font-semibold text-secondary-foreground hover:border-teal hover:text-teal-ink transition-colors"
                 >
                   <span className="w-2 h-2 rounded-full bg-success" />
-                  {bed.patient_display_name}
+                  {bed.bed_label}
                 </button>
               ))}
             </div>
           )}
-        </form>
+        </div>
 
         <p className="text-sm text-muted-foreground">Trouble signing in? Ask your ward administrator.</p>
       </div>

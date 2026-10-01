@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import type { GestureTextPayload } from '@/hooks/use-session-realtime'
 import Image from 'next/image'
+import { KioskPairing } from '@/components/kiosk-pairing'
 import { EmergencyAlertBanner } from '@/components/emergency-alert-banner'
 import { TranscriptFeed, isSevereOrCriticalEvent } from '@/components/transcript-feed'
 import { useSessionRealtime } from '@/hooks/use-session-realtime'
@@ -19,8 +20,6 @@ import {
   Clock,
   Loader2,
   QrCode,
-  Copy,
-  Check,
   AlertTriangle,
   RefreshCw,
   XCircle,
@@ -201,10 +200,10 @@ export default function DashboardPage() {
   const [inputText, setInputText] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [isPagingInterpreter, setIsPagingInterpreter] = useState(false)
-  const [patientDisplayName, setPatientDisplayName] = useState('Patient Bed 4A (Ramesh)')
+  const [patientDisplayName, setPatientDisplayName] = useState('Bedside patient')
   const [pairingOpen, setPairingOpen] = useState(false)
-  const [copiedUrl, setCopiedUrl] = useState(false)
-  const [tabletUrl, setTabletUrl] = useState('')
+  const [hospitalName, setHospitalName] = useState('Hospital')
+  const [hiddenEventIds, setHiddenEventIds] = useState<Set<string>>(new Set())
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null)
   const [escalationTriggered, setEscalationTriggered] = useState(false)
 
@@ -270,6 +269,7 @@ export default function DashboardPage() {
       .then((data) => {
         if (data?.session?.patient_display_name) {
           setPatientDisplayName(data.session.patient_display_name)
+          setHospitalName(data.hospital?.name || 'Hospital')
         }
       })
       .catch(() => {})
@@ -298,20 +298,9 @@ export default function DashboardPage() {
     }
   }
 
-  const handleClearAuditTrail = async () => {
-    const count = events.length
-    if (count === 0) return
-
-    setEvents([])
-    toast.success(`Cleared ${count} interaction${count === 1 ? '' : 's'} from audit trail`)
-
-    try {
-      await fetch(`/api/session/${sessionId}/events`, {
-        method: 'DELETE',
-      })
-    } catch {
-      // Local state is already updated
-    }
+  const handleClearAuditTrail = () => {
+    setHiddenEventIds(new Set(events.map((event) => event.id)))
+    toast.success('Earlier interactions hidden from this view. The audit record is retained.')
   }
 
   const handleSendISLPhrase = async (phrase?: string, clipKey?: string) => {
@@ -377,28 +366,12 @@ export default function DashboardPage() {
   const handlePageInterpreter = () => {
     setIsPagingInterpreter(true)
     requestInterpreter({
-      hospitalName: 'Apollo Multi-Specialty Hospital',
+      hospitalName,
       patientName: patientDisplayName,
       note: 'Staff station remote paging',
     })
     toast.info('Paging ISL interpreters...')
     setTimeout(() => setIsPagingInterpreter(false), 2500)
-  }
-
-  // Tablet pairing URL
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setTabletUrl(`${window.location.origin}/patient/${sessionId}`)
-    }
-  }, [sessionId])
-
-  const handleCopyTabletUrl = () => {
-    if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(tabletUrl)
-      setCopiedUrl(true)
-      toast.success('Bedside tablet link copied!')
-      setTimeout(() => setCopiedUrl(false), 2000)
-    }
   }
 
   // 60-Second Auto-Fallback Escalation Timer
@@ -537,7 +510,21 @@ export default function DashboardPage() {
                   {events.length} interaction{events.length === 1 ? '' : 's'} · live
                 </span>
               </div>
-              <TranscriptFeed events={events} initialFilterSevere={false} onClearEvents={handleClearAuditTrail} />
+              {hiddenEventIds.size > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setHiddenEventIds(new Set())}
+                  className="mb-3 rounded-full border-input font-semibold"
+                >
+                  Show full audit history
+                </Button>
+              )}
+              <TranscriptFeed
+                events={events.filter((event) => !hiddenEventIds.has(event.id))}
+                initialFilterSevere={false}
+                onClearEvents={handleClearAuditTrail}
+              />
             </div>
 
             {/* Composer */}
@@ -708,25 +695,15 @@ export default function DashboardPage() {
           <section className="bg-card border border-border rounded-[18px] p-[18px] flex flex-col gap-3">
             <h2 className="font-heading font-bold text-[17px]">Bedside tablet</h2>
             <span className="text-[13px] leading-normal text-muted-foreground">
-              Scan the QR or open the link on the patient&apos;s tablet.
+              Create a one-time pairing QR for the patient&apos;s tablet.
             </span>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setPairingOpen(true)}
-                className="h-11 rounded-[10px] border-input font-semibold gap-1.5"
-              >
-                <QrCode className="w-4 h-4" /> Show QR
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleCopyTabletUrl}
-                className="h-11 rounded-[10px] border-input font-semibold gap-1.5"
-              >
-                {copiedUrl ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
-                {copiedUrl ? 'Copied' : 'Copy link'}
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              onClick={() => setPairingOpen(true)}
+              className="h-11 rounded-[10px] border-input font-semibold gap-1.5"
+            >
+              <QrCode className="w-4 h-4" /> Pair tablet
+            </Button>
           </section>
         </aside>
       </div>
@@ -744,39 +721,7 @@ export default function DashboardPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
-            <div className="p-3 bg-white rounded-2xl shadow-md border border-slate-200">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(tabletUrl)}`}
-                alt="Bedside Pairing QR Code"
-                width={200}
-                height={200}
-                className="rounded-lg"
-              />
-            </div>
-            <p className="text-[11px] font-mono bg-slate-200 dark:bg-slate-800 px-2.5 py-1 rounded text-slate-700 dark:text-slate-300 break-all select-all text-center">
-              {tabletUrl}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 pt-2">
-            <Button
-              onClick={handleCopyTabletUrl}
-              variant="outline"
-              className="w-full text-xs h-9 font-bold rounded-xl border-slate-300 dark:border-slate-700 flex items-center justify-center gap-1.5"
-            >
-              {copiedUrl ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedUrl ? 'Copied!' : 'Copy Link'}</span>
-            </Button>
-            <Button
-              onClick={() => window.open(tabletUrl, '_blank')}
-              className="w-full bg-teal hover:bg-teal-light text-white text-xs h-9 font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>Open Tablet</span>
-            </Button>
-          </div>
+          {pairingOpen && <KioskPairing sessionId={sessionId} />}
         </DialogContent>
       </Dialog>
     </main>

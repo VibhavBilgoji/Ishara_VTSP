@@ -1,6 +1,6 @@
 -- Ishara: Seed Data for Demo
 -- Migration 003: Demo hospital, ISL clips library
--- Note: Demo user accounts are created via Supabase Auth (handled in DEMO_MODE code)
+-- Demo user accounts are created with scripts/seed-production-simulation.ts after applying migrations.
 
 -- Demo hospital
 insert into public.hospitals (id, name) values

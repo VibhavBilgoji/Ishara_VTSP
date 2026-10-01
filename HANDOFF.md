@@ -13,7 +13,7 @@ During initial testing of Phase 1, buttons on `/login` appeared non-responsive, 
 1. **Next.js 16 Middleware Lockdown (`proxy.ts` -> `lib/supabase/middleware.ts`)**:
    - `lib/supabase/middleware.ts` only whitelisted `/login`, `/auth`, `/patient`, and `/api`.
    - `/dashboard/*` and `/interpreter/*` were blocked for unauthenticated users, throwing `HTTP 307 Temporary Redirect` back to `/login`.
-   - `DEMO_MODE=true` in `.env.local` was ignored by the middleware.
+   - Demo accounts require normal Supabase authentication; no auth bypass is supported.
 2. **Session ID Desynchronization**:
    - `/login` demo buttons generated random isolated UUIDs on each click. The patient was in Session A, the doctor was in Session B, and the interpreter was listening for `'demo-session'`. None shared a realtime channel.
 3. **Patient Kiosk UX / Unconnected Terminal**:
@@ -56,7 +56,7 @@ The project is divided across team members with zero overlap:
 
 ### Task A1: Fix Middleware & Demo Mode Auth Bypass [COMPLETED]
 - **Files:** `lib/supabase/middleware.ts`, `proxy.ts`, `app/auth/hospital/page.tsx`, `app/auth/interpreter/page.tsx`, `app/auth/callback/route.ts`
-- **Status:** Verified. `isDemoMode` (`process.env.DEMO_MODE === 'true'`) and `hasDemoRole` (`ishara_demo_role` cookie) bypass auth redirects. All routes (`/dashboard/*`, `/interpreter/*`, `/patient/*`) return 200 OK.
+- **Current behavior:** Staff and interpreter portals require the matching profile role. Patient tablets require a session pairing cookie. `NEXT_PUBLIC_DEMO_MODE=true` only displays evaluation credential helpers.
 
 ### Task A2: Synchronize Demo Session IDs [COMPLETED]
 - **File:** `app/login/page.tsx`
@@ -76,7 +76,7 @@ The project is divided across team members with zero overlap:
 
 ### Task A6: Doctor Station QR Code Bedside Pairing [COMPLETED]
 - **File:** `app/dashboard/[sessionId]/page.tsx`
-- **Status:** Verified. Added "Pair Bedside Tablet" button opening a modal with a dynamic QR code pointing to `http://<LAN_IP>:3000/patient/[sessionId]`.
+- **Status:** Verified. Added "Pair Bedside Tablet" button opening a modal with a locally generated QR code with a five-minute, one-use pairing link. The tablet exchanges the secret for an httpOnly session cookie.
 
 ### Task A7: 60-Second Auto-Fallback Escalation Timer [COMPLETED]
 - **File:** `app/dashboard/[sessionId]/page.tsx`

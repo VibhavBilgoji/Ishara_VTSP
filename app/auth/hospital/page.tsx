@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Stethoscope, ArrowLeft, Mail, Lock, KeyRound, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { isStaffRole } from '@/lib/roles'
 
 export default function HospitalAuthPage() {
   const router = useRouter()
@@ -25,7 +26,7 @@ export default function HospitalAuthPage() {
       const supabase = createClient()
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
-        password: password.trim(),
+        password,
       })
 
       if (error) {
@@ -33,6 +34,12 @@ export default function HospitalAuthPage() {
       }
 
       if (data?.user) {
+        const { data: profile, error: profileError } = await supabase.from('profiles')
+          .select('role, hospital_id').eq('id', data.user.id).single()
+        if (profileError || !profile || !isStaffRole(profile.role) || !profile.hospital_id) {
+          await supabase.auth.signOut()
+          throw new Error('This account is not authorized for the hospital portal.')
+        }
         toast.success('Authenticated as ' + (data.user.user_metadata?.full_name || email))
         router.push('/dashboard')
       }
@@ -118,6 +125,7 @@ export default function HospitalAuthPage() {
             </form>
 
             {/* Evaluation Credentials Helper for Judges */}
+            {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
               <div className="flex items-center gap-1.5 text-xs font-bold text-teal-700 dark:text-teal-400 uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5" /> Registered Clinical Accounts (Click to Fill)
@@ -156,6 +164,7 @@ export default function HospitalAuthPage() {
                 </button>
               </div>
             </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -350,7 +350,7 @@ GEMINI_API_KEY=your-gemini-api-key
 GEMINI_MODEL=gemini-flash-lite-latest
 
 # Demo Mode (Allows instant evaluation without email auth)
-DEMO_MODE=true
+NEXT_PUBLIC_DEMO_MODE=false
 ```
 
 ### 3. Run Database Migrations & Seed Data

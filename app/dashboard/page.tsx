@@ -12,8 +12,6 @@ import {
   RefreshCw,
   Clock,
   Bed,
-  Copy,
-  Check,
   X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -22,6 +20,7 @@ import { Input } from '@/components/ui/input'
 import { Dialog } from '@base-ui/react/dialog'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
+import { KioskPairing } from '@/components/kiosk-pairing'
 import { EmergencyAlertBanner } from '@/components/emergency-alert-banner'
 import {
   HOSPITAL_ALERTS_CHANNEL,
@@ -49,13 +48,14 @@ export default function HospitalRosterPage() {
   // Admission Modal State
   const [isAdmitOpen, setIsAdmitOpen] = useState(false)
   const [patientName, setPatientName] = useState('')
+  const [bedLabel, setBedLabel] = useState('')
+  const [hospitalName, setHospitalName] = useState('Hospital')
   const [priority, setPriority] = useState('P0')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // QR Modal State
   const [isQROpen, setIsQROpen] = useState(false)
   const [selectedSession, setSelectedSession] = useState<BedSession | null>(null)
-  const [copied, setCopied] = useState(false)
 
   // Realtime Hospital-wide Emergency Alerts
   const [activeEmergencyAlert, setActiveEmergencyAlert] = useState<PictogramAlertPayload | null>(null)
@@ -153,67 +153,14 @@ export default function HospitalRosterPage() {
       }
       setUser(authUser)
 
-      // Query verified sessions via server endpoint (which verifies live LiveKit rooms and paging timeouts)
-      let sessData: BedSession[] = []
-      try {
-        const res = await fetch('/api/session?list=true', { cache: 'no-store' })
-        if (res.ok) {
-          const json = await res.json()
-          if (json?.sessions && Array.isArray(json.sessions)) {
-            sessData = json.sessions
-          }
-        }
-      } catch {}
+      const res = await fetch('/api/session?list=true', { cache: 'no-store' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not load hospital beds')
+      setSessions(data.sessions)
+      setHospitalName(data.hospital.name)
 
-      // Fallback to direct supabase query if API failed
-      if (sessData.length === 0) {
-        const { data: directData } = await supabase
-          .from('sessions')
-          .select('*')
-          .neq('status', 'closed')
-          .order('created_at', { ascending: false })
-        if (directData) sessData = directData
-      }
-
-      if (sessData && sessData.length > 0) {
-        // Deduplicate sessions so each unique bed/patient appears at most once
-        const seenIds = new Set<string>()
-        const seenNames = new Set<string>()
-        const uniqueSessions: BedSession[] = []
-
-        for (const s of sessData) {
-          const normName = (s.patient_display_name || '').trim().toLowerCase()
-          if (!seenIds.has(s.id) && !seenNames.has(normName)) {
-            seenIds.add(s.id)
-            seenNames.add(normName)
-            uniqueSessions.push(s)
-          }
-        }
-
-        setSessions(uniqueSessions)
-      } else {
-        // Fallback to default pre-seeded sessions if none returned
-        setSessions([
-          {
-            id: '00000000-0000-0000-0000-000000000001',
-            hospital_id: 'a0000000-0000-0000-0000-000000000001',
-            patient_display_name: 'Bed 4A - Ramesh Kumar (ISL)',
-            status: 'active',
-            active_mode: 'pictogram',
-            created_at: '2026-09-12T06:30:00.000Z',
-          },
-          {
-            id: '00000000-0000-0000-0000-000000000002',
-            hospital_id: 'a0000000-0000-0000-0000-000000000001',
-            patient_display_name: 'ICU Bed 2 - Sunita Patel (Deaf/Mute)',
-            status: 'active',
-            active_mode: 'pictogram',
-            created_at: '2026-09-12T07:15:00.000Z',
-          },
-        ])
-      }
     } catch {
-      // Graceful fallback
+      toast.error('Could not load hospital beds')
     } finally {
       setLoading(false)
     }
@@ -246,17 +193,19 @@ export default function HospitalRosterPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          hospitalId: 'a0000000-0000-0000-0000-000000000001',
+          bedLabel,
           patientDisplayName: `${patientName.trim()} (${priority})`,
         }),
       })
 
       const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not admit patient')
       if (data.session) {
         toast.success(`Admitted ${data.session.patient_display_name} successfully!`)
         setSessions((prev) => [data.session, ...prev])
         setIsAdmitOpen(false)
         setPatientName('')
+        setBedLabel('')
 
         // Open QR code immediately so nurse can pair tablet
         setSelectedSession(data.session)
@@ -274,31 +223,16 @@ export default function HospitalRosterPage() {
       return
     }
     try {
-      await fetch(`/api/session/${sessionId}/status`, {
+      const response = await fetch(`/api/session/${sessionId}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'closed' }),
       })
+      if (!response.ok) throw new Error('Discharge failed')
       setSessions((prev) => prev.filter((s) => s.id !== sessionId))
       toast.success(`${patientName} discharged successfully`)
     } catch {
       toast.error('Failed to discharge patient')
-    }
-  }
-
-  const getTabletUrl = (sessionId: string) => {
-    if (typeof window !== 'undefined') {
-      return `${window.location.origin}/patient/${sessionId}`
-    }
-    return `/patient/${sessionId}`
-  }
-
-  const handleCopy = (url: string) => {
-    if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(url)
-      setCopied(true)
-      toast.success('Bedside tablet URL copied!')
-      setTimeout(() => setCopied(false), 2000)
     }
   }
 
@@ -314,7 +248,7 @@ export default function HospitalRosterPage() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-bold tracking-tight text-teal dark:text-teal-300">
-                  Apollo Multi-Specialty Hospital
+                  {hospitalName}
                 </h1>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300">
                   Staff Station
@@ -557,12 +491,17 @@ export default function HospitalRosterPage() {
 
             <form onSubmit={handleAdmitPatient} className="space-y-4 pt-2">
               <div className="space-y-1.5">
+                <label htmlFor="bed-label" className="text-xs font-bold text-slate-700 dark:text-slate-300">Bed label</label>
+                <Input id="bed-label" required maxLength={80} placeholder="e.g. Bed 5 or ICU Bed 2"
+                  value={bedLabel} onChange={(e) => setBedLabel(e.target.value)} className="h-10 rounded-xl" />
+              </div>
+              <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Bed Identifier / Patient Name
+                  Patient Name
                 </label>
                 <Input
                   required
-                  placeholder="e.g. Bed 5 - Triage North (Ramesh)"
+                  placeholder="e.g. Ramesh Kumar"
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
                   className="h-10 text-xs rounded-xl"
@@ -638,70 +577,8 @@ export default function HospitalRosterPage() {
               </span>
             </Dialog.Description>
 
-            {selectedSession && (
-              <div className="p-3 bg-white dark:bg-slate-950 rounded-2xl border-2 border-slate-200 dark:border-slate-800 inline-block shadow-inner mx-auto">
-                <div className="p-2 bg-white rounded-xl shadow-xs">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                      getTabletUrl(selectedSession.id)
-                    )}`}
-                    alt="Bedside Pairing QR"
-                    className="w-40 h-40 sm:w-44 sm:h-44 mx-auto rounded-lg"
-                  />
-                </div>
-              </div>
-            )}
-
-            {selectedSession && (
-              <div className="space-y-1.5 text-left">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">
-                  Bedside Pairing Link:
-                </span>
-                <div className="flex items-center gap-1.5 p-1.5 pl-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 font-mono text-xs overflow-hidden">
-                  <span className="truncate flex-1 text-slate-700 dark:text-slate-300 select-all">
-                    {getTabletUrl(selectedSession.id)}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleCopy(getTabletUrl(selectedSession.id))}
-                    className="h-7 px-2 text-xs font-bold shrink-0 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600 mr-1" />
-                        <span className="text-emerald-600 font-bold">Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5 mr-1 text-slate-500" />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsQROpen(false)}
-                className="w-full text-xs h-9 font-bold border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
-              >
-                Close
-              </Button>
-              {selectedSession && (
-                <Button
-                  onClick={() => window.open(getTabletUrl(selectedSession.id), '_blank')}
-                  className="w-full text-xs h-9 font-bold bg-teal hover:bg-teal-light text-white rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Open in New Tab</span>
-                </Button>
-              )}
-            </div>
+            {isQROpen && selectedSession && <KioskPairing key={selectedSession.id} sessionId={selectedSession.id} />}
+            <Button variant="outline" onClick={() => setIsQROpen(false)}>Close</Button>
           </Dialog.Popup>
         </Dialog.Portal>
       </Dialog.Root>

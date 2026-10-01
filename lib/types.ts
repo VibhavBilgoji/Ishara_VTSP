@@ -46,10 +46,12 @@ export interface Session {
   id: string
   hospital_id: string
   patient_display_name: string | null
+  bed_label: string
+  requested_at: string | null
   status: SessionStatus
   active_mode: ActiveMode | null
   assigned_interpreter_id: string | null
-  created_by: string
+  created_by: string | null
   created_at: string
   closed_at: string | null
 }
