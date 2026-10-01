@@ -391,69 +391,29 @@ export function useSessionRealtime({
   /** Broadcast an interpreter request across the hospital and to all interpreters */
   const requestInterpreter = useCallback(
     async (options?: { hospitalName?: string; patientName?: string; note?: string }) => {
-      // 1. Update session status to interpreter_requested
-      sendStatusChange('interpreter_requested')
-
-      const requestPayload = {
-        id: `req-${Date.now()}`,
-        sessionId,
-        hospitalName: options?.hospitalName || 'Ishara Demo Hospital',
-        patientName: options?.patientName || 'Bedside Patient (ISL)',
-        note: options?.note || 'Urgent clinician bedside request',
-        requestedAt: new Date().toLocaleTimeString(),
-      }
-
-      // 2. Broadcast to local interpreter requests channel
+      const response = await fetch(`/api/session/${sessionId}/request-interpreter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: options?.note || 'Urgent clinician bedside request' }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || 'Could not request an interpreter')
+      const requestPayload = data.request
+      setSessionStatus('interpreter_requested')
+      broadcastChannelRef.current?.postMessage({
+        type: REALTIME_EVENTS.STATUS_CHANGE,
+        payload: { type: 'status_change', sessionId, newStatus: 'interpreter_requested', timestamp: requestPayload.requestedAt },
+      })
+      // The server sends cross-device notifications only after persistence.
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
         try {
-          const bc = new BroadcastChannel('ishara_global_interpreter_requests')
-          bc.postMessage({
-            type: 'new_request',
-            payload: requestPayload,
-          })
-          setTimeout(() => {
-            try {
-              bc.close()
-            } catch { }
-          }, 3000)
-        } catch { }
-      }
-
-      // 3. Broadcast to Supabase Realtime channel for interpreters
-      try {
-        if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-          const supabase = createClient()
-          const interpChannel = supabase.channel(INTERPRETER_REQUESTS_CHANNEL)
-          interpChannel.subscribe((subStatus: string) => {
-            if (subStatus === 'SUBSCRIBED') {
-              interpChannel.send({
-                type: 'broadcast',
-                event: REALTIME_EVENTS.NEW_REQUEST,
-                payload: requestPayload,
-              })
-            }
-          })
-        }
-      } catch (err) {
-        console.warn('Realtime interpreter broadcast error:', err)
-      }
-
-      // 4. Persist to API
-      try {
-        await fetch(`/api/session/${sessionId}/request-interpreter`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            note: options?.note || 'Urgent clinician bedside request',
-            hospitalName: options?.hospitalName,
-            patientName: options?.patientName,
-          }),
-        })
-      } catch (err) {
-        console.warn('API interpreter request error:', err)
+          const channel = new BroadcastChannel('ishara_global_interpreter_requests')
+          channel.postMessage({ type: 'new_request', payload: requestPayload })
+          channel.close()
+        } catch { /* The persisted queue remains available. */ }
       }
     },
-    [sessionId, sendStatusChange]
+    [sessionId]
   )
 
   /** Cancel an active interpreter request */

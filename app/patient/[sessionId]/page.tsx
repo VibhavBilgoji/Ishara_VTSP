@@ -196,14 +196,18 @@ export default function PatientPage() {
     }
   }
 
-  const handleRequestInterpreter = () => {
-    setFallbackCountdown(30)
-    requestInterpreter({
-      hospitalName,
-      patientName: bedName,
-      note: 'Bedside request from patient tablet',
-    })
-    toast.info('Paging ISL interpreter relay pool...')
+  const handleRequestInterpreter = async () => {
+    try {
+      await requestInterpreter({
+        hospitalName,
+        patientName: bedName,
+        note: 'Bedside request from patient tablet',
+      })
+      toast.info('Paging ISL interpreter relay pool...')
+      setFallbackCountdown(30)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not page an interpreter. Please retry.')
+    }
   }
 
   const handleDisconnectInterpreter = async () => {

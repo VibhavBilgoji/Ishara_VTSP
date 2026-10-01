@@ -418,15 +418,18 @@ export default function DashboardPage() {
     }
   }
 
-  const handlePageInterpreter = () => {
+  const handlePageInterpreter = async () => {
     setIsPagingInterpreter(true)
-    requestInterpreter({
-      hospitalName,
-      patientName: patientDisplayName,
-      note: 'Staff station remote paging',
-    })
-    toast.info('Paging ISL interpreters...')
-    setTimeout(() => setIsPagingInterpreter(false), 2500)
+    try {
+      await requestInterpreter({
+        hospitalName,
+        patientName: patientDisplayName,
+        note: 'Staff station remote paging',
+      })
+      toast.info('Paging ISL interpreters...')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not page an interpreter. Please retry.')
+    } finally { setIsPagingInterpreter(false) }
   }
 
   // 60-Second Auto-Fallback Escalation Timer

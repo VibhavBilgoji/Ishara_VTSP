@@ -35,7 +35,8 @@ export default function InterpreterDashboard() {
   const [user, setUser] = useState<any>(null)
   const [status, setStatus] = useState<'available' | 'busy' | 'offline'>('available')
   const [requests, setRequests] = useState<IncomingRequest[]>([])
-  const handledRequestsRef = useRef<Map<string, number>>(new Map())
+  const handledRequestsRef = useRef<Map<string, string>>(new Map())
+  const [queueError, setQueueError] = useState('')
 
   // Load authenticated user and verify session
   useEffect(() => {
@@ -91,22 +92,18 @@ export default function InterpreterDashboard() {
   }
 
   const handleNewRequest = React.useCallback((payload: any) => {
-    const sessId = payload?.sessionId || '00000000-0000-0000-0000-000000000001'
-    const now = Date.now()
-    const lastSeen = handledRequestsRef.current.get(sessId) || 0
-
-    // Suppress duplicates within 6 seconds
-    if (now - lastSeen < 6000) {
-      return
-    }
-    handledRequestsRef.current.set(sessId, now)
+    const sessId = payload?.sessionId
+    if (!sessId) return
+    const requestVersion = payload.requestedAt || payload.id || sessId
+    if (handledRequestsRef.current.get(sessId) === requestVersion) return
+    handledRequestsRef.current.set(sessId, requestVersion)
 
     const req: IncomingRequest = {
       id: payload?.id || `req-${sessId}`,
       sessionId: sessId,
       hospitalName: payload?.hospitalName || 'Apollo Multi-Specialty Hospital',
       patientName: payload?.patientName || 'Bedside Patient (ISL)',
-      requestedAt: new Date().toLocaleTimeString(),
+      requestedAt: payload.requestedAt ? new Date(payload.requestedAt).toLocaleTimeString() : new Date().toLocaleTimeString(),
     }
 
     // Play ringtone and show singleton toast outside state updater
@@ -117,13 +114,44 @@ export default function InterpreterDashboard() {
     })
 
     setRequests((prev) => {
-      // Deduplicate: ignore duplicate triggers for the same active session
-      if (prev.some((r) => r.sessionId === req.sessionId)) {
-        return prev
-      }
-      return [req, ...prev]
+      return [req, ...prev.filter((request) => request.sessionId !== req.sessionId)]
     })
   }, [])
+
+  // Broadcasts reduce latency; the persisted queue recovers calls after a reload or reconnect.
+  useEffect(() => {
+    if (!user) return
+    const controller = new AbortController()
+    let loading = false
+    const refreshQueue = async () => {
+      if (loading || controller.signal.aborted) return
+      loading = true
+      try {
+        const response = await fetch('/api/interpreter/requests', { cache: 'no-store', signal: controller.signal })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Call queue unavailable')
+        if (controller.signal.aborted) return
+        const pending: IncomingRequest[] = data.requests || []
+        pending.forEach(handleNewRequest)
+        const pendingIds = new Set(pending.map((request) => request.sessionId))
+        setRequests((previous) => previous.filter((request) => pendingIds.has(request.sessionId)))
+        setQueueError('')
+      } catch {
+        if (!controller.signal.aborted) setQueueError('Could not refresh the call queue. Retrying…')
+      } finally { loading = false }
+    }
+    void refreshQueue()
+    const interval = window.setInterval(() => void refreshQueue(), 5000)
+    const onFocus = () => void refreshQueue()
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('online', onFocus)
+    return () => {
+      controller.abort()
+      window.clearInterval(interval)
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('online', onFocus)
+    }
+  }, [user, handleNewRequest])
 
   const handleCancelRequest = React.useCallback((payload: any) => {
     const cancelSessId = payload?.sessionId
@@ -272,6 +300,7 @@ export default function InterpreterDashboard() {
           </div>
 
           <AudioAlarmBanner className="mb-4" />
+          {queueError && <p role="alert" className="text-sm text-destructive">{queueError}</p>}
 
           {requests.length === 0 ? (
             <div className="rounded-3xl border-2 border-dashed border-border bg-card/60 p-10 sm:p-14 text-center flex flex-col items-center gap-3">

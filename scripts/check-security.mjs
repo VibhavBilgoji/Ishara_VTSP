@@ -83,9 +83,15 @@ await denied('truncate public.session_events;')
 
 await as('authenticated', staffA)
 await db.exec(`update public.sessions set status = 'interpreter_requested' where id = '${sessionA}';`)
+await denied('select * from public.list_interpreter_requests();')
 await as('authenticated', interpreterA)
 assert.equal((await rows('select * from public.sessions')).length, 0)
+const pendingCalls = await rows('select * from public.list_interpreter_requests();')
+assert.equal(pendingCalls.length, 1)
+assert.equal(pendingCalls[0].session_id, sessionA)
+assert.deepEqual(Object.keys(pendingCalls[0]).sort(), ['bed_label', 'hospital_name', 'requested_at', 'session_id'])
 assert.equal((await rows(`select public.claim_session('${sessionA}') as claimed`))[0].claimed, true)
+assert.equal((await rows('select * from public.list_interpreter_requests();')).length, 0)
 assert.equal((await rows('select * from public.sessions')).length, 1)
 await as('authenticated', interpreterB)
 assert.equal((await rows(`select public.claim_session('${sessionA}') as claimed`))[0].claimed, false)
@@ -106,6 +112,7 @@ console.log('Fresh migrations, hospital isolation, profile protection, audit ret
 if (process.argv[2]) {
   const paths = [
     ['GET', '/api/session?list=true'], ['POST', '/api/session'],
+    ['GET', '/api/interpreter/requests'],
     ['POST', '/api/livekit-token'], ['POST', '/api/isl-lookup'],
     ['GET', `/api/session/${sessionA}/events`], ['POST', `/api/session/${sessionA}/events`],
     ['DELETE', `/api/session/${sessionA}/events`], ['POST', `/api/session/${sessionA}/status`],

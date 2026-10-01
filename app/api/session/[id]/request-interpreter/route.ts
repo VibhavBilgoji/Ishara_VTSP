@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { AccessError, apiError, requireKioskOrStaff, requireSameOrigin, sessionHospital } from '@/lib/auth'
-import { INTERPRETER_REQUESTS_CHANNEL, REALTIME_EVENTS } from '@/lib/realtime'
+import { getSessionChannel, INTERPRETER_REQUESTS_CHANNEL, REALTIME_EVENTS } from '@/lib/realtime'
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -21,10 +21,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       payload: { requestedAt, note },
     })
     if (eventError) throw eventError
-    await auth.supabase.channel(INTERPRETER_REQUESTS_CHANNEL).httpSend(REALTIME_EVENTS.NEW_REQUEST, {
-      id: crypto.randomUUID(), sessionId: auth.session.id, hospitalName: hospital.name,
-      patientName: auth.session.patient_display_name, note, requestedAt,
-    })
-    return NextResponse.json({ success: true, sessionId: auth.session.id, status: 'interpreter_requested' })
+    const callRequest = {
+      id: auth.session.id, sessionId: auth.session.id, hospitalName: hospital.name,
+      patientName: auth.session.bed_label, note, requestedAt,
+    }
+    // A failed broadcast must not hide a successfully persisted call from the polling queue.
+    await Promise.allSettled([
+      auth.supabase.channel(INTERPRETER_REQUESTS_CHANNEL).httpSend(REALTIME_EVENTS.NEW_REQUEST, callRequest),
+      auth.supabase.channel(getSessionChannel(auth.session.id)).httpSend(REALTIME_EVENTS.STATUS_CHANGE, {
+        type: 'status_change', sessionId: auth.session.id, newStatus: 'interpreter_requested', timestamp: requestedAt,
+      }),
+    ])
+    return NextResponse.json({ success: true, sessionId: auth.session.id, status: 'interpreter_requested', request: callRequest })
   } catch (error) { return apiError(error) }
 }
