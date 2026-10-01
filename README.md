@@ -1,7 +1,7 @@
 # Ishara • इशारा
 ### Clinical Communication Platform for Deaf & Mute Indian Sign Language (ISL) Patients
 
-> **Bit N Build 2026 · Track 1: Access & Inclusion**  
+> **SANKALP SETU – College Level Hackathon 2026**  
 > *A production-grade, zero-latency hospital communication bridge connecting deaf patients, clinical staff, and certified sign language interpreters.*
 
 ---

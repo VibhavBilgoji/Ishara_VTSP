@@ -259,7 +259,7 @@ export default function LandingPage() {
             <ScrollReveal>
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#084C5B]/10 dark:bg-[#084C5B]/20 border border-[#084C5B]/20 dark:border-[#084C5B]/30 text-[#084C5B] dark:text-[#5BBFD4] text-xs font-semibold mb-8 backdrop-blur-sm">
                 <Zap className="w-3.5 h-3.5" />
-                Bit N Build 2026 · Track 1: Access &amp; Inclusion
+                SANKALP SETU – College Level Hackathon 2026
               </div>
             </ScrollReveal>
 
@@ -763,9 +763,8 @@ export default function LandingPage() {
             <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-600">
               <span>Built for</span>
               <span className="text-[#0D748A] dark:text-[#5BBFD4] font-semibold">
-                Bit N Build 2026
+                SANKALP SETU – College Level Hackathon 2026
               </span>
-              <span>· Track 1: Access &amp; Inclusion</span>
             </div>
           </div>
         </div>
