@@ -67,7 +67,6 @@ export function VisionGestureCamera({
 
   const [cameraOn, setCameraOn] = useState(false)
   const [modelReady, setModelReady] = useState(false)
-  const [faceDetected, setFaceDetected] = useState(false)
   const [pendingConf, setPendingConf] = useState(0)
   const [lastGesture, setLastGesture] = useState<DetectedGesture | null>(null)
   const [wordBuffer, setWordBuffer] = useState<string[]>([])
@@ -149,14 +148,10 @@ export function VisionGestureCamera({
         landmarks,
         handsDetected: detectedHands,
         pendingConfidence,
-        hasFace,
       } = classifyFrame(video, ts)
 
       drawSkeleton(landmarks)
       setPendingConf(pendingConfidence)
-      if (hasFace !== undefined) {
-        setFaceDetected(hasFace)
-      }
 
       // Model functionality: Handle gesture confirmation and candidate preview
       if (gesture) {
@@ -224,7 +219,6 @@ export function VisionGestureCamera({
     setCameraOn(false)
     setPendingConf(0)
     setLastGesture(null)
-    setFaceDetected(false)
     onCameraStateChange?.(false)
   }, [onCameraStateChange])
 
@@ -331,18 +325,15 @@ export function VisionGestureCamera({
         }`}
       >
         {/* Top Header Overlay Bar */}
-        <div className="absolute top-0 left-0 right-0 z-20 px-3 py-2 bg-gradient-to-b from-black/90 via-black/50 to-transparent flex items-center justify-between text-white text-xs">
+        <div className="absolute top-0 left-0 right-0 z-20 px-3 py-2 bg-gradient-to-b from-black/80 via-black/40 to-transparent flex items-center justify-between text-white text-xs">
           <div className="flex items-center gap-2">
             <div
               className={`w-2.5 h-2.5 rounded-full ${cameraOn ? 'bg-emerald-400 animate-ping' : 'bg-rose-500'
                 }`}
             />
-            <span className="font-extrabold text-[12px] tracking-wide text-white flex items-center gap-1.5 whitespace-nowrap">
-              <span>Vision Sign AI Live</span>
-              <span className={`${isFullscreen ? '' : 'hidden xl:inline'} text-[10px] uppercase px-1.5 py-0.5 font-mono bg-teal-900/60 border border-teal-500/40 text-teal-300 rounded`}>
-                24 ISL Signs
-              </span>
-            </span>
+            {cameraOn && (
+              <span className="text-[11px] font-semibold text-emerald-300 tracking-wide uppercase">Live</span>
+            )}
             {!modelReady && !initError && (
               <span className="text-[10px] text-amber-300 bg-amber-950/70 border border-amber-500/40 px-2 py-0.5 rounded-full animate-pulse">
                 Loading Model…
@@ -448,32 +439,11 @@ export function VisionGestureCamera({
           </div>
         )}
 
-        {/* Top-left: face + hand tracking indicator when camera is active */}
-        {cameraOn && (
-          <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
-            <span
-              className={`text-xs px-2.5 py-1 rounded-full backdrop-blur-md transition-all flex items-center gap-1.5 border ${faceDetected
-                ? 'bg-blue-950/70 border-blue-400/40 text-blue-300 shadow-sm shadow-blue-500/20'
-                : 'bg-black/60 border-white/10 text-gray-400'
-                }`}
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${faceDetected ? 'bg-blue-400 animate-pulse' : 'bg-gray-500'
-                  }`}
-              />
-              <span className="font-medium">
-                {faceDetected ? 'ISL + Face' : 'ISL Hand'}
-              </span>
-            </span>
-          </div>
-        )}
-
-        {/* Top-right: confidence ring + label */}
-        {/* Live HUD Pill (active gesture + confidence ring) */}
-        {cameraOn && (
-          <div className="absolute top-12 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
+        {/* Live HUD Pill (active gesture + confidence ring) - shown only when a gesture is actively being held or recognized */}
+        {cameraOn && (lastGesture || pendingConf > 0) && (
+          <div className="absolute top-12 left-3 right-3 z-10 flex items-center justify-between pointer-events-none animate-in fade-in duration-150">
             {lastGesture ? (
-              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-900/90 backdrop-blur-md border border-teal-400/80 text-white shadow-lg animate-in fade-in">
+              <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-900/90 backdrop-blur-md border border-teal-400/80 text-white shadow-lg">
                 <div className="w-2 h-2 rounded-full bg-teal-400 animate-ping" />
                 <div>
                   <span className="text-[9px] uppercase font-bold text-teal-300 block leading-tight tracking-wider">
@@ -482,14 +452,10 @@ export function VisionGestureCamera({
                   <span className={`font-bold text-white ${isFullscreen ? 'text-2xl' : 'text-xs'}`}>{lastGesture.displayText}</span>
                 </div>
               </div>
-            ) : (
-              <div className="px-2.5 py-1 rounded-lg bg-black/50 backdrop-blur-xs border border-white/10 text-slate-300 text-[11px]">
-                Waiting for sign gestures…
-              </div>
-            )}
+            ) : <div />}
 
             {/* Confidence ring SVG */}
-            <div className="flex items-center gap-2 bg-slate-900/90 backdrop-blur-md px-2 py-1 rounded-xl border border-white/20">
+            <div className="flex items-center gap-2 bg-slate-900/90 backdrop-blur-md px-2 py-1 rounded-xl border border-white/20 ml-auto">
               <svg width="32" height="32" aria-hidden>
                 <circle cx="16" cy="16" r={ringR} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="3" />
                 <circle
