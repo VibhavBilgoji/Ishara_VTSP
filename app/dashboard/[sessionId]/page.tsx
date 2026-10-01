@@ -754,10 +754,12 @@ export default function DashboardPage() {
                     Connected · two-way video live
                   </span>
                   <Button
-                    onClick={() => window.open(`/interpreter/call/${sessionId}`, '_blank')}
-                    className="h-11 rounded-[10px] bg-indigo hover:bg-indigo-hover text-white font-semibold"
+                    onClick={() => window.open(`/interpreter/call/${sessionId}?role=spectator`, '_blank')}
+                    className="h-11 rounded-[10px] bg-indigo hover:bg-indigo-hover text-white font-semibold flex items-center justify-center gap-2 shadow"
+                    title="Spectate live video call between patient and interpreter"
                   >
-                    Open call stream
+                    <Video className="w-4 h-4" />
+                    <span>Open call stream</span>
                   </Button>
                 </>
               ) : (

@@ -1,28 +1,68 @@
 'use client'
 
-import React from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import React, { useState, useEffect } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { LiveKitVideoCall } from '@/components/livekit-video-call'
 import { useSessionRealtime } from '@/hooks/use-session-realtime'
-import { ArrowLeft } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { isStaffRole } from '@/lib/roles'
+import { ArrowLeft, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
 export default function InterpreterCallPage() {
   const params = useParams<{ sessionId: string }>()
+  const searchParams = useSearchParams()
   const router = useRouter()
   const sessionId = params.sessionId || '00000000-0000-0000-0000-000000000001'
+
+  const [isSpectator, setIsSpectator] = useState(searchParams?.get('role') === 'spectator')
+  const [participantName, setParticipantName] = useState('Certified ISL Interpreter')
+  const [participantIdentity, setParticipantIdentity] = useState(`interpreter-${sessionId.slice(0, 6)}`)
+
+  useEffect(() => {
+    async function determineRole() {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: profile } = await supabase.from('profiles').select('role, full_name').eq('id', user.id).single()
+          if (profile && isStaffRole(profile.role)) {
+            setIsSpectator(true)
+            setParticipantName(`${profile.full_name || 'Hospital Doctor'} (Spectator)`)
+            setParticipantIdentity(`staff-${user.id.slice(0, 8)}`)
+          }
+        }
+      } catch (err) {
+        console.warn('Error fetching role in call page:', err)
+      }
+    }
+    void determineRole()
+  }, [])
 
   const { sendStatusChange } = useSessionRealtime({
     sessionId,
     onStatusReceived: (status) => {
       if (status.newStatus !== 'interpreter_connected') {
-        toast.info('Video session concluded by patient')
-        router.push('/interpreter/dashboard')
+        toast.info('Video session concluded')
+        if (isSpectator) {
+          router.push(`/dashboard/${sessionId}`)
+        } else {
+          router.push('/interpreter/dashboard')
+        }
       }
     },
   })
+
+  const handleExitCall = () => {
+    if (isSpectator) {
+      toast.info('Exited spectator stream')
+      router.push(`/dashboard/${sessionId}`)
+    } else {
+      void handleEndCall()
+    }
+  }
 
   const handleEndCall = async () => {
     toast.success('Call ended. Returning to interpreter dashboard.')
@@ -49,11 +89,11 @@ export default function InterpreterCallPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleEndCall}
+            onClick={handleExitCall}
             className="text-slate-400 hover:text-white hover:bg-slate-900 text-xs flex items-center gap-1.5"
           >
             <ArrowLeft className="w-4 h-4" />
-            Exit Call
+            {isSpectator ? 'Exit Spectator View' : 'Exit Call'}
           </Button>
 
           <div className="flex items-center gap-2">
@@ -67,8 +107,13 @@ export default function InterpreterCallPage() {
               />
             </div>
             <h1 className="text-sm font-bold text-teal-300">
-              Ishara Live Relay Room
+              {isSpectator ? 'Ishara Clinical Spectator Stream' : 'Ishara Live Relay Room'}
             </h1>
+            {isSpectator && (
+              <span className="ml-2 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                <Eye className="w-3 h-3" /> Doctor Spectator (View Only)
+              </span>
+            )}
           </div>
         </div>
 
@@ -81,10 +126,10 @@ export default function InterpreterCallPage() {
       <div className="flex-1 w-full h-full overflow-hidden">
         <LiveKitVideoCall
           roomName={sessionId}
-          participantName="Certified ISL Interpreter"
-          participantIdentity={`interpreter-${sessionId.slice(0, 6)}`}
-          role="interpreter"
-          onDisconnect={handleEndCall}
+          participantName={participantName}
+          participantIdentity={participantIdentity}
+          role={isSpectator ? 'staff' : 'interpreter'}
+          onDisconnect={handleExitCall}
         />
       </div>
     </main>

@@ -52,17 +52,35 @@ function TwoPartyVideoStage({
   const room = useRoomContext()
   const connectionState = useConnectionState()
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [micEnabled, setMicEnabled] = useState(true)
-  const [cameraEnabled, setCameraEnabled] = useState(true)
+  const isSpectator = role === 'staff'
+  const [micEnabled, setMicEnabled] = useState(!isSpectator)
+  const [cameraEnabled, setCameraEnabled] = useState(!isSpectator)
 
   // Track all camera video streams in the room
   const tracks = useTracks([
     { source: Track.Source.Camera, withPlaceholder: true },
   ])
 
-  // Separate local participant track vs remote participant track
+  // Separate local participant track vs remote participant tracks
   const localTrack = tracks.find((t) => t.participant.isLocal)
+  const remoteTracks = tracks.filter((t) => !t.participant.isLocal)
   const remoteTrack = tracks.find((t) => !t.participant.isLocal)
+
+  // In spectator mode (Doctor), separate the two remote streams (Patient vs Interpreter)
+  const patientTrack =
+    remoteTracks.find(
+      (t) =>
+        t.participant.identity?.toLowerCase().startsWith('patient') ||
+        t.participant.name?.toLowerCase().includes('patient')
+    ) || remoteTracks[0]
+
+  const interpreterTrack =
+    remoteTracks.find(
+      (t) =>
+        (t.participant.identity?.toLowerCase().startsWith('interpreter') ||
+          t.participant.name?.toLowerCase().includes('interpreter')) &&
+        t !== patientTrack
+    ) || (remoteTracks.length > 1 && remoteTracks[1] !== patientTrack ? remoteTracks[1] : null)
 
   const toggleMic = async () => {
     if (room?.localParticipant) {
@@ -127,7 +145,9 @@ function TwoPartyVideoStage({
           </span>
           <span className="text-xs font-bold text-teal-300">
             {connectionState === ConnectionState.Connected
-              ? 'WebRTC Live Relay'
+              ? isSpectator
+                ? 'Clinical Spectator Stream'
+                : 'WebRTC Live Relay'
               : 'Connecting WebRTC...'}
           </span>
           <span className="text-[11px] text-slate-300 font-mono hidden sm:inline">
@@ -138,7 +158,7 @@ function TwoPartyVideoStage({
         <div className="flex items-center gap-2 pointer-events-auto">
           <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-600/90 text-white flex items-center gap-1.5 shadow">
             <Sparkles className="w-3.5 h-3.5" />
-            ISL HD Video Active
+            {isSpectator ? 'Spectating Patient ⇄ Interpreter' : 'ISL HD Video Active'}
           </span>
           <Button
             variant="ghost"
@@ -154,60 +174,124 @@ function TwoPartyVideoStage({
 
       {/* Main Video Stage */}
       <div className="flex-1 relative w-full h-full min-h-0 grid grid-cols-1 md:grid-cols-2 gap-2 p-2 pt-14 pb-16">
-        {/* Tile 1: Remote Participant (The other party) */}
-        <div className="relative w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
-          {remoteTrack && isTrackReference(remoteTrack) && remoteTrack.publication?.isSubscribed ? (
-            <VideoTrack
-              trackRef={remoteTrack}
-              className="w-full h-full object-contain bg-black"
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-indigo-950/80 border-2 border-indigo-500 flex items-center justify-center animate-pulse">
-                <Users className="w-8 h-8 text-indigo-300" />
-              </div>
-              <div>
-                <h4 className="text-base sm:text-lg font-bold text-white">
-                  {role === 'interpreter'
-                    ? 'Waiting for Patient Camera...'
-                    : 'Connecting with ISL Interpreter...'}
-                </h4>
-                <p className="text-xs text-slate-400 max-w-xs mt-1">
-                  {role === 'interpreter'
-                    ? 'Patient tablet is connecting to this secure room.'
-                    : 'Certified interpreter is joining the live video relay.'}
-                </p>
+        {isSpectator ? (
+          <>
+            {/* Tile 1: Bedside Patient */}
+            <div className="relative w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+              {patientTrack && isTrackReference(patientTrack) && patientTrack.publication?.isSubscribed ? (
+                <VideoTrack
+                  trackRef={patientTrack}
+                  className="w-full h-full object-contain bg-black"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-teal-950/80 border-2 border-teal-500 flex items-center justify-center animate-pulse">
+                    <Users className="w-8 h-8 text-teal-300" />
+                  </div>
+                  <div>
+                    <h4 className="text-base sm:text-lg font-bold text-white">
+                      Waiting for Patient Video...
+                    </h4>
+                    <p className="text-xs text-slate-400 max-w-xs mt-1">
+                      Patient bedside tablet is connecting to the relay stream.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-semibold text-white flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                Bedside Patient ({patientTrack?.participant.name || 'Patient'})
               </div>
             </div>
-          )}
 
-          {/* Remote Label */}
-          <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-semibold text-white flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            {role === 'interpreter' ? 'Patient Bedside' : 'Certified ISL Interpreter'}
-          </div>
-        </div>
+            {/* Tile 2: Certified ISL Interpreter */}
+            <div className="relative w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+              {interpreterTrack && isTrackReference(interpreterTrack) && interpreterTrack.publication?.isSubscribed ? (
+                <VideoTrack
+                  trackRef={interpreterTrack}
+                  className="w-full h-full object-contain bg-black"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-indigo-950/80 border-2 border-indigo-500 flex items-center justify-center animate-pulse">
+                    <Users className="w-8 h-8 text-indigo-300" />
+                  </div>
+                  <div>
+                    <h4 className="text-base sm:text-lg font-bold text-white">
+                      Waiting for Interpreter Video...
+                    </h4>
+                    <p className="text-xs text-slate-400 max-w-xs mt-1">
+                      Certified ISL interpreter is joining the live video relay.
+                    </p>
+                  </div>
+                </div>
+              )}
 
-        {/* Tile 2: Local Participant (Self Camera Preview) */}
-        <div className="relative w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
-          {localTrack && isTrackReference(localTrack) && cameraEnabled ? (
-            <VideoTrack
-              trackRef={localTrack}
-              className="w-full h-full object-cover scale-x-[-1]"
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center p-6 text-center space-y-2">
-              <VideoOff className="w-10 h-10 text-slate-500" />
-              <p className="text-xs text-slate-400">Your camera is turned off</p>
+              <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-semibold text-white flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                Certified ISL Interpreter ({interpreterTrack?.participant.name || 'Interpreter'})
+              </div>
             </div>
-          )}
+          </>
+        ) : (
+          <>
+            {/* Tile 1: Remote Participant (The other party) */}
+            <div className="relative w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+              {remoteTrack && isTrackReference(remoteTrack) && remoteTrack.publication?.isSubscribed ? (
+                <VideoTrack
+                  trackRef={remoteTrack}
+                  className="w-full h-full object-contain bg-black"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center p-6 text-center space-y-3">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-indigo-950/80 border-2 border-indigo-500 flex items-center justify-center animate-pulse">
+                    <Users className="w-8 h-8 text-indigo-300" />
+                  </div>
+                  <div>
+                    <h4 className="text-base sm:text-lg font-bold text-white">
+                      {role === 'interpreter'
+                        ? 'Waiting for Patient Camera...'
+                        : 'Connecting with ISL Interpreter...'}
+                    </h4>
+                    <p className="text-xs text-slate-400 max-w-xs mt-1">
+                      {role === 'interpreter'
+                        ? 'Patient tablet is connecting to this secure room.'
+                        : 'Certified interpreter is joining the live video relay.'}
+                    </p>
+                  </div>
+                </div>
+              )}
 
-          {/* Local Label */}
-          <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-semibold text-white flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-blue-400" />
-            You ({participantName})
-          </div>
-        </div>
+              {/* Remote Label */}
+              <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-semibold text-white flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                {role === 'interpreter' ? 'Patient Bedside' : 'Certified ISL Interpreter'}
+              </div>
+            </div>
+
+            {/* Tile 2: Local Participant (Self Camera Preview) */}
+            <div className="relative w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+              {localTrack && isTrackReference(localTrack) && cameraEnabled ? (
+                <VideoTrack
+                  trackRef={localTrack}
+                  className="w-full h-full object-cover scale-x-[-1]"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center p-6 text-center space-y-2">
+                  <VideoOff className="w-10 h-10 text-slate-500" />
+                  <p className="text-xs text-slate-400">Your camera is turned off</p>
+                </div>
+              )}
+
+              {/* Local Label */}
+              <div className="absolute bottom-2 left-2 bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-semibold text-white flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-blue-400" />
+                You ({participantName})
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Bottom Floating Controls Bar */}
@@ -242,7 +326,7 @@ function TwoPartyVideoStage({
             className="h-11 px-5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold flex items-center gap-2 shadow-lg"
           >
             <PhoneOff className="w-4 h-4" />
-            <span>End Call</span>
+            <span>{isSpectator ? 'Exit Spectator View' : 'End Call'}</span>
           </Button>
         )}
       </div>
@@ -342,8 +426,8 @@ export function LiveKitVideoCall({
       token={token}
       serverUrl={serverUrl}
       connect={true}
-      video={true}
-      audio={true}
+      video={role !== 'staff'}
+      audio={role !== 'staff'}
       onError={(err) => {
         console.warn('LiveKit WebRTC connection notice:', err)
       }}

@@ -54,7 +54,12 @@ export async function updateSession(request: NextRequest) {
   const { data: profile } = await supabase.from('profiles').select('role, hospital_id').eq('id', user.id).single()
   const staff = profile && isStaffRole(profile.role) && Boolean(profile.hospital_id)
   const interpreter = profile?.role === 'interpreter'
-  if (((path.startsWith('/dashboard') || path.startsWith('/nurse')) && !staff) || (path.startsWith('/interpreter') && !interpreter)) {
+  const isCallStream = path.startsWith('/interpreter/call/')
+  if (
+    ((path.startsWith('/dashboard') || path.startsWith('/nurse')) && !staff) ||
+    (path.startsWith('/interpreter') && !isCallStream && !interpreter) ||
+    (isCallStream && !interpreter && !staff)
+  ) {
     const response = NextResponse.redirect(new URL(interpreter ? '/interpreter/dashboard' : staff ? '/dashboard' : '/login', request.url))
     for (const cookie of supabaseResponse.cookies.getAll()) response.cookies.set(cookie)
     return response
